@@ -1,0 +1,6 @@
+{
+  "huggingface.base-url": "https://api-inference.huggingface.co/models/",
+  "huggingface.classifier-model": "facebook/bart-large-mnli",
+  "huggingface.labelling-model": "baidu/ERNIE-4.5.21B-A3B-PT",
+  "huggingface.summarization-model": "baidu/ERNIE-4.5.21B-A3B-PT"
+}

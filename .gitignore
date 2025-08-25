@@ -1,0 +1,70 @@
+/src/secrets.json
+*.sqlite
+
+# == Python =============================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# C extensions
+*.pyd
+
+# Distribution / packaging
+.Python
+build/
+dist/
+eggs/
+*.egg-info/
+
+# Unit test / coverage reports
+.coverage
+.tox/
+.coverage.*
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# MyPy cache
+.mypy_cache/
+
+# PyInstaller
+*.spec
+
+# Jupyter notebooks
+.ipynb_checkpoints
+
+# == IDEs and Tools =====================================
+# PyCharm
+.idea/
+.pytest_cache/
+.DS_Store
+
+# VS Code
+.vscode/
+
+# == Flask and Alembic ==================================
+# Flask session files (if not using a database)
+instance/
+
+# Flask-DebugToolbar (if used)
+.flsk_dt/
+
+# Alembic
+# This ignores the auto-generated migration files.
+# Keep this line if you want to prevent committing these to git.
+# Remove it if you need to manage your migrations in version control.
+# NOTE: The recommended practice is to commit the versions folder.
+#       Only ignore it if your migrations are auto-generated from a
+#       separate, un-versioned source.
+# /versions/
+
+# However, you should generally commit your 'versions' folder.
+# This is a common mistake. Most projects need to track migrations.
+
+# == Pytest =============================================
+# Pytest cache directory
+.pytest_cache/
