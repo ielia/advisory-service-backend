@@ -65,6 +65,7 @@ class HuggingFaceService(AIService):
                 label_id = label.id
                 scored_label = ScoredLabel(article=article, article_id=article.id, label=label, label_id=label_id,
                                            score=Decimal(label_score))
+                all_scored_labels.append(scored_label)
                 for topic_label in label.topic_labels:
                     topic_id: int = topic_label.topic_id
                     scored_labels_by_ids[topic_id][label_id] = scored_label
@@ -77,10 +78,8 @@ class HuggingFaceService(AIService):
                 for label_id, scored_label in scored_labels.items():
                     topic_label = topic_labels_by_ids[topic_id][label_id]
                     topic_score += Decimal(scored_label.score) * Decimal(topic_label.weight)
-                    all_scored_labels.append(scored_label)
-                scored_topic = ScoredTopic(
-                    article=article, article_id=article.id, topic_id=topic_id, score=topic_score / topic_scale
-                )
+                scored_topic = ScoredTopic(article=article, article_id=article.id, topic_id=topic_id,
+                                           score=topic_score / topic_scale)
                 # scored_topics[topic_id] = scored_topic
                 all_scored_topics.append(scored_topic)
         article.scored_topics = all_scored_topics
@@ -88,8 +87,9 @@ class HuggingFaceService(AIService):
 
     # noinspection PyMethodMayBeStatic
     def _log_response(self, url, payload, response) -> None:
-        file = sys.stdout
-        print(f"url: {url}\npayload:\n", file=file)
-        json.dump(payload, file, indent=2)
-        print(f"\nstatus: {response.status_code}\ncontent:\n{response.content}", file=file)
-        print(f"{'-' * 80}", file=file)
+        # file = sys.stdout
+        # print(f"url: {url}\npayload:\n", file=file)
+        # json.dump(payload, file, indent=2)
+        # print(f"\nstatus: {response.status_code}\ncontent:\n{response.content}", file=file)
+        # print(f"{'-' * 80}", file=file)
+        pass
