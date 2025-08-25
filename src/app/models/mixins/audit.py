@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from enum import Enum
-from typing import cast, Iterable, TYPE_CHECKING
+from typing import Iterable, TYPE_CHECKING, cast
 
 from flask import g
 from sqlalchemy import BinaryExpression, Column, DateTime, Integer, String, Table, Text, and_, event

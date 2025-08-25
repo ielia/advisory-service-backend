@@ -34,22 +34,18 @@ ScoredTopic.scored_labels: Mapped[List[ScoredLabel]] = relationship(
     lazy='select',
 )
 
-ScoredTopic.tag: Mapped[Tag] = relationship(
+ScoredTopic.tags: Mapped[List[Tag]] = relationship(
     Tag,
-    primaryjoin=and_(ScoredTopic.article_id == foreign(Tag.article_id), ScoredTopic.topic_id == foreign(Tag.topic_id)),
-    # back_populates='scored_topic',
-    single_parent=True,
-    uselist=False,
+    primaryjoin=ScoredTopic.topic_id == foreign(Tag.topic_id),
+    # back_populates='scored_topics',
     viewonly=True,
-    lazy='joined',
+    lazy='select',
 )
 
-Tag.scored_topic: Mapped[ScoredTopic] = relationship(
+Tag.scored_topics: Mapped[ScoredTopic] = relationship(
     ScoredTopic,
-    primaryjoin=and_(Tag.article_id == foreign(ScoredTopic.article_id), Tag.topic_id == foreign(ScoredTopic.topic_id)),
-    # back_populates='tag',
-    single_parent=True,
-    uselist=False,
+    primaryjoin=Tag.topic_id == foreign(ScoredTopic.topic_id),
+    # back_populates='tags',
     viewonly=True,
-    lazy='joined',
+    lazy='select',
 )

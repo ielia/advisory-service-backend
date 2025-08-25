@@ -1,8 +1,7 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric, Text, and_, false
-from sqlalchemy.orm import Mapped, foreign, relationship
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric, Text, false
+from sqlalchemy.orm import Mapped, relationship
 
 from app.db import db
-from app.models import ScoredTopic
 from app.models.mixins.audit import AuditMixin
 from app.models.mixins.default_values import DefaultValuesMixin
 from app.models.mixins.serializer import SerializerMixin

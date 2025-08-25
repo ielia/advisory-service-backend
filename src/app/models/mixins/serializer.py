@@ -17,6 +17,8 @@ class SerializerMixin:
                 return value.isoformat() if value else None
             elif isinstance(c_type, DECIMAL) or isinstance(c_type, Float) or isinstance(c_type, Numeric):
                 return float(value)
+            elif isinstance(value, SerializerMixin):
+                return value.to_dict()
             else:
                 return value
 
