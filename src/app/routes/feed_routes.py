@@ -29,7 +29,7 @@ def fetch_articles() -> Response:
             db.session.add(article)
             db.session.add_all(scored_labels)
             db.session.add_all(scored_topics)
-            if feed.last_fetch is None or feed.last_fetch.astimezone(timezone.utc) < article.published:
+            if feed.last_fetch is None or feed.last_fetch.astimezone(timezone.utc) < article.published.astimezone(timezone.utc):
                 feed.last_fetch = article.published
                 db.session.add(feed)
             db.session.commit()
@@ -45,7 +45,7 @@ def fetch_articles() -> Response:
         result: tuple[int, str]
         nonlocal total_articles_fetched
         total_articles_fetched += 1
-        if lbound_datetime is None or lbound_datetime.astimezone(timezone.utc) < article.published:
+        if lbound_datetime is None or lbound_datetime.astimezone(timezone.utc) < article.published.astimezone(timezone.utc):
             result = 1, json.dumps(process_article(feed, article))
             nonlocal total_articles_processed
             total_articles_processed += 1
