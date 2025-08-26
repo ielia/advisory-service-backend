@@ -5,10 +5,9 @@ from app.db import db
 from app.models.mixins.audit import AuditMixin
 from app.models.mixins.default_values import DefaultValuesMixin
 from app.models.mixins.serializer import SerializerMixin
-from app.models.mixins.soft_delete import SoftDeleteMixin
 
 
-class ScoredLabel(DefaultValuesMixin, AuditMixin, SerializerMixin, SoftDeleteMixin, db.Model):
+class ScoredLabel(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
     __Plural__ = 'ScoredLabels'
     __singular__ = 'scored_label'
     __tablename__ = 'scored_labels'

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 35d2b2f50c57
+Revision ID: e12bffda051e
 Revises: 
-Create Date: 2025-08-24 18:52:03.365259
+Create Date: 2025-08-25 23:42:58.594960
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '35d2b2f50c57'
+revision = 'e12bffda051e'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -29,7 +29,6 @@ def upgrade():
     sa.Column('similarity', sa.Numeric(precision=10, scale=10), nullable=True),
     sa.Column('manually_set', sa.Boolean(), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('articles_history',
@@ -48,7 +47,6 @@ def upgrade():
     sa.Column('published', sa.DateTime(), nullable=True),
     sa.Column('following', sa.Boolean(), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('feeds',
@@ -58,8 +56,9 @@ def upgrade():
     sa.Column('last_fetch', sa.DateTime(), nullable=True),
     sa.Column('enabled', sa.Boolean(), server_default=sa.text('1'), nullable=False),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), server_default=sa.text('0'), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name'),
+    sa.UniqueConstraint('url')
     )
     op.create_table('feeds_history',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -73,15 +72,14 @@ def upgrade():
     sa.Column('last_fetch', sa.DateTime(), nullable=True),
     sa.Column('enabled', sa.Boolean(), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('labels',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('text', sa.String(length=100), nullable=False),
     sa.Column('hypothesis', sa.String(length=100), nullable=False),
-    sa.Column('deleted', sa.Boolean(), server_default=sa.text('0'), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('text')
     )
     op.create_table('labels_history',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -92,7 +90,6 @@ def upgrade():
     sa.Column('label_id', sa.Integer(), nullable=False),
     sa.Column('text', sa.String(length=100), nullable=True),
     sa.Column('hypothesis', sa.String(length=100), nullable=True),
-    sa.Column('deleted', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('scored_labels_history',
@@ -104,7 +101,6 @@ def upgrade():
     sa.Column('scored_label_article_id', sa.Integer(), nullable=False),
     sa.Column('scored_label_label_id', sa.Integer(), nullable=False),
     sa.Column('score', sa.Numeric(precision=10, scale=10), nullable=True),
-    sa.Column('deleted', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('scored_topics_history',
@@ -118,7 +114,6 @@ def upgrade():
     sa.Column('score', sa.Numeric(precision=10, scale=10), nullable=True),
     sa.Column('manually_set', sa.Boolean(), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('tags_history',
@@ -132,7 +127,6 @@ def upgrade():
     sa.Column('weight', sa.Numeric(precision=10, scale=10), nullable=True),
     sa.Column('manually_set', sa.Boolean(), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('topic_labels_history',
@@ -145,7 +139,6 @@ def upgrade():
     sa.Column('topic_label_label_id', sa.Integer(), nullable=False),
     sa.Column('weight', sa.Numeric(precision=10, scale=10), nullable=True),
     sa.Column('enabled', sa.Boolean(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('topics',
@@ -154,8 +147,8 @@ def upgrade():
     sa.Column('is_global', sa.Boolean(), server_default=sa.text('1'), nullable=False),
     sa.Column('enabled', sa.Boolean(), server_default=sa.text('1'), nullable=False),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), server_default=sa.text('0'), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name')
     )
     op.create_table('topics_history',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -168,7 +161,6 @@ def upgrade():
     sa.Column('is_global', sa.Boolean(), nullable=True),
     sa.Column('enabled', sa.Boolean(), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('users',
@@ -177,8 +169,9 @@ def upgrade():
     sa.Column('username', sa.String(length=100), nullable=False),
     sa.Column('hashed_password', sa.String(length=100), nullable=False),
     sa.Column('enabled', sa.Boolean(), server_default=sa.text('1'), nullable=False),
-    sa.Column('deleted', sa.Boolean(), server_default=sa.text('0'), nullable=False),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('guid'),
+    sa.UniqueConstraint('username')
     )
     op.create_table('users_history',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
@@ -191,7 +184,6 @@ def upgrade():
     sa.Column('username', sa.String(length=100), nullable=True),
     sa.Column('hashed_password', sa.String(length=100), nullable=True),
     sa.Column('enabled', sa.Boolean(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('articles',
@@ -205,16 +197,15 @@ def upgrade():
     sa.Column('published', sa.DateTime(), nullable=False),
     sa.Column('following', sa.Boolean(), server_default=sa.text('0'), nullable=False),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), server_default=sa.text('0'), nullable=False),
     sa.ForeignKeyConstraint(['feed_id'], ['feeds.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('url')
     )
     op.create_table('topic_labels',
     sa.Column('topic_id', sa.Integer(), nullable=False),
     sa.Column('label_id', sa.Integer(), nullable=False),
     sa.Column('weight', sa.Numeric(precision=10, scale=10), nullable=False),
     sa.Column('enabled', sa.Boolean(), server_default=sa.text('1'), nullable=False),
-    sa.Column('deleted', sa.Boolean(), server_default=sa.text('0'), nullable=False),
     sa.ForeignKeyConstraint(['label_id'], ['labels.id'], ),
     sa.ForeignKeyConstraint(['topic_id'], ['topics.id'], ),
     sa.PrimaryKeyConstraint('topic_id', 'label_id')
@@ -225,7 +216,6 @@ def upgrade():
     sa.Column('similarity', sa.Numeric(precision=10, scale=10), nullable=True),
     sa.Column('manually_set', sa.Boolean(), server_default=sa.text('0'), nullable=False),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), server_default=sa.text('0'), nullable=False),
     sa.ForeignKeyConstraint(['followup_article_id'], ['articles.id'], ),
     sa.ForeignKeyConstraint(['original_article_id'], ['articles.id'], ),
     sa.PrimaryKeyConstraint('original_article_id', 'followup_article_id')
@@ -234,7 +224,6 @@ def upgrade():
     sa.Column('article_id', sa.Integer(), nullable=False),
     sa.Column('label_id', sa.Integer(), nullable=False),
     sa.Column('score', sa.Numeric(precision=10, scale=10), nullable=False),
-    sa.Column('deleted', sa.Boolean(), server_default=sa.text('0'), nullable=False),
     sa.ForeignKeyConstraint(['article_id'], ['articles.id'], ),
     sa.ForeignKeyConstraint(['label_id'], ['labels.id'], ),
     sa.PrimaryKeyConstraint('article_id', 'label_id')
@@ -245,7 +234,6 @@ def upgrade():
     sa.Column('score', sa.Numeric(precision=10, scale=10), nullable=True),
     sa.Column('manually_set', sa.Boolean(), server_default=sa.text('0'), nullable=False),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), server_default=sa.text('0'), nullable=False),
     sa.ForeignKeyConstraint(['article_id'], ['articles.id'], ),
     sa.ForeignKeyConstraint(['topic_id'], ['topics.id'], ),
     sa.PrimaryKeyConstraint('article_id', 'topic_id')
@@ -256,7 +244,6 @@ def upgrade():
     sa.Column('weight', sa.Numeric(precision=10, scale=10), server_default=sa.text('(1.0)'), nullable=True),
     sa.Column('manually_set', sa.Boolean(), server_default=sa.text('0'), nullable=False),
     sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('deleted', sa.Boolean(), server_default=sa.text('0'), nullable=False),
     sa.ForeignKeyConstraint(['article_id'], ['articles.id'], ),
     sa.ForeignKeyConstraint(['topic_id'], ['topics.id'], ),
     sa.PrimaryKeyConstraint('article_id', 'topic_id')

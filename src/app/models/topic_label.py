@@ -5,10 +5,9 @@ from app.db import db
 from app.models.mixins.audit import AuditMixin
 from app.models.mixins.default_values import DefaultValuesMixin
 from app.models.mixins.serializer import SerializerMixin
-from app.models.mixins.soft_delete import SoftDeleteMixin
 
 
-class TopicLabel(DefaultValuesMixin, AuditMixin, SerializerMixin, SoftDeleteMixin, db.Model):
+class TopicLabel(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
     __Plural__ = 'TopicLabels'
     __singular__ = 'topic_label'
     __tablename__ = 'topic_labels'

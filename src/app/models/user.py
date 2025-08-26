@@ -5,21 +5,18 @@ from app.db import db
 from app.models.mixins.audit import AuditMixin
 from app.models.mixins.default_values import DefaultValuesMixin
 from app.models.mixins.serializer import SerializerMixin
-from app.models.mixins.soft_delete import SoftDeleteMixin
 
 
-class User(DefaultValuesMixin, AuditMixin, SerializerMixin, SoftDeleteMixin, db.Model):
+class User(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
     __Plural__ = 'Users'
     __singular__ = 'user'
     __tablename__ = 'users'
 
     id: Mapped[int] = Column(Integer, primary_key=True, autoincrement=True)
-    guid: Mapped[str] = Column(String(100), nullable=False)
-    username: Mapped[str] = Column(String(100), nullable=False)
+    guid: Mapped[str] = Column(String(100), unique=True, nullable=False)
+    username: Mapped[str] = Column(String(100), unique=True, nullable=False)
     hashed_password: Mapped[str] = Column(String(100), nullable=False)
     enabled: Mapped[bool] = Column(Boolean, default=True, server_default=true(), nullable=False)
-
-    __non_deleted_unique_constraints__ = [[guid], [username]]
 
 
 UserHistory = User.create_history_model()

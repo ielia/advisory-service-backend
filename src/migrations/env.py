@@ -5,8 +5,6 @@ from flask import current_app
 
 from alembic import context
 
-from app.models.mixins.soft_delete import rebuild_partial_indexes
-
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -70,10 +68,8 @@ def run_migrations_offline():
         url=url, target_metadata=get_metadata(), literal_binds=True
     )
 
-    with context.begin_transaction() as transaction:
+    with context.begin_transaction():
         context.run_migrations()
-        if not getattr(context.config.cmd_opts, 'autogenerate', False):
-            rebuild_partial_indexes(transaction.migration_context.connection)
 
 
 def run_migrations_online():
@@ -109,8 +105,7 @@ def run_migrations_online():
 
         with context.begin_transaction():
             context.run_migrations()
-            if not getattr(context.config.cmd_opts, 'autogenerate', False):
-                rebuild_partial_indexes(connection)
+
 
 if context.is_offline_mode():
     run_migrations_offline()

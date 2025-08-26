@@ -5,10 +5,9 @@ from app.db import db
 from app.models.mixins.audit import AuditMixin
 from app.models.mixins.default_values import DefaultValuesMixin
 from app.models.mixins.serializer import SerializerMixin
-from app.models.mixins.soft_delete import SoftDeleteMixin
 
 
-class Tag(DefaultValuesMixin, AuditMixin, SerializerMixin, SoftDeleteMixin, db.Model):
+class Tag(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
     """This entity represents a relation between an article and a generated topic that was created to follow said article."""
 
     __Plural__ = 'Tags'

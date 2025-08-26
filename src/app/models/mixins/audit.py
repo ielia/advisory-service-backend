@@ -126,10 +126,11 @@ class AuditMixin(AuditMetaMixin):
                 for c in target.__table__.columns
                 if not c.primary_key and c.name in history_cls.__table__.columns
             }
-            values['change_type'] = (
-                ChangeType.DELETE if change_type == ChangeType.UPDATE and
-                                     target.deleted and get_history(target, 'deleted').has_changes()
-                else change_type).name
+            # values['change_type'] = (
+            #     ChangeType.DELETE if change_type == ChangeType.UPDATE and
+            #                          target.deleted and get_history(target, 'deleted').has_changes()
+            #     else change_type).name
+            values['change_type'] = change_type.name
             values['change_date'] = datetime.now(timezone.utc)
             values['change_user_id'] = getattr(g, 'audit_user_id', 'N/A')
             values['change_reason'] = getattr(g, 'audit_change_reason', None)
