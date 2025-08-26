@@ -1,12 +1,12 @@
 # import bcrypt
-from app.services.auth_service import AuthService
 from app.config import Config
+from app.services.auth_service import AuthService
 
 
 class FakeAuthService(AuthService):
     # hashed_password = bcrypt.hashpw(password, bcrypt.gensalt())
 
-    def __init__(self, config: 'Config') -> None:
+    def __init__(self, config: Config) -> None:
         pass
 
     def authenticate(self, username: str, password: str) -> str:

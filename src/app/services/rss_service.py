@@ -8,7 +8,6 @@ from dateutil.parser import parse as parse_datetime
 
 from app.models.article import Article
 from app.models.feed import Feed
-from app.config import Config
 
 
 class RSSService:
@@ -24,7 +23,8 @@ class RSSService:
             for entry in parsed.entries:
                 try:
                     published = self._parse_published_date(entry)
-                    if feed.last_fetch is None or published.astimezone(timezone.utc) > feed.last_fetch.astimezone(timezone.utc):
+                    if feed.last_fetch is None or published.astimezone(timezone.utc) > feed.last_fetch.astimezone(
+                            timezone.utc):
                         url = self._get_url(entry)
                         articles.append(Article(
                             feed_id=feed.id,
