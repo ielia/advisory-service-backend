@@ -148,7 +148,6 @@ def upgrade():
     sa.Column('enabled', sa.Boolean(), server_default=sa.text('1'), nullable=False),
     sa.Column('notes', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('name')
     )
     op.create_table('topics_history',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),

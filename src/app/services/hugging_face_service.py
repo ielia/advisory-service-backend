@@ -28,20 +28,18 @@ class AITag:
 class HuggingFaceService(AIService):
     headers: dict[str, str]
     classification_url: str
-    labelling_url: str
     summarization_url: str
-    hypothesis: str
+    tag_label_weighing_hypothesis: str
 
     def __init__(self, config: Config) -> None:
         self.headers = {'Authorization': f"Bearer {config.get('huggingface.access-token')}"}
         base_url = config.get('huggingface.base-url')
         base_url = base_url[:-1] if base_url.endswith("/") else base_url
         self.classification_url = f"{base_url}/{config.get('huggingface.classifier-model')}"
-        self.labelling_url = f"{base_url}/{config.get('huggingface.labelling-model')}"
-        self.tagging_model = f"{config.get('huggingface.tagging-model')}"
+        self.completions_url = f"{config.get('huggingface.completions-url')}"
         self.summarization_url = f"{base_url}/{config.get('huggingface.summarization-model')}"
-        self.hypothesis = f"{config.get('huggingface.hypothesis')}"
-        self.completions = f"{config.get('huggingface.completions')}"
+        self.tag_label_weighing_hypothesis = f"{config.get('huggingface.tag-label-weighing-hypothesis')}"
+        self.tagging_model = f"{config.get('huggingface.tagging-model')}"
 
     def add_generated_summary(self, article: Article) -> str:
         payload = {'inputs': article.full_text}
@@ -52,7 +50,14 @@ class HuggingFaceService(AIService):
         article.ai_summary = text
         return text
 
-    def add_generated_tags(self, article: Article) -> list[Tag]:
+    def add_generated_tags(self, article: Article) -> tuple[list[Tag], list[Topic], list[TopicLabel], list[Label]]:
+        tags: list[Tag] = []
+        topics: list[Topic] = []
+        topic_labels: list[Label] = []
+        labels: list[Label] = []
+        label_weights: dict[str, float] = {}
+
+        # Generate raw topics and labels
         payload = {
             'messages': [
                 {
@@ -62,45 +67,49 @@ class HuggingFaceService(AIService):
             ],
             'model': self.tagging_model
         }
-        response = requests.post(self.completions, headers=self.headers, json=payload)
-        self._log_response(self.completions, payload, response)
+        response = requests.post(self.completions_url, headers=self.headers, json=payload)
+        self._log_response(self.completions_url, payload, response)
         response.raise_for_status()
-
         ai_tags: list[dict] = json.loads(response.json()["choices"][0]["message"]["content"])
-        tags: list[Tag] = []
 
-        for ai_tag in ai_tags:
-            labels: list[Label] = []
-            topic = Topic(name=ai_tag['topic'], is_global=True, enabled=True)
-            topic_labels: list[TopicLabel] = []
-
-            payload = {
-                "inputs": article.summary,
-                "parameters": {
-                    "candidate_labels": ai_tag['labels'],
-                    "multi_label": True,
-                    "hypothesis_template": self.hypothesis
-                }
+        # Get raw label weights
+        unique_labels = list(set([tag_label for ai_tag in ai_tags for tag_label in ai_tag['labels']]))
+        payload = {
+            'inputs': article.summary,
+            'parameters': {
+                'candidate_labels': unique_labels,
+                'multi_label': True,
+                'hypothesis_template': self.tag_label_weighing_hypothesis
             }
+        }
+        response = requests.post(self.classification_url, headers=self.headers, json=payload)
+        self._log_response(self.classification_url, payload, response)
+        response.raise_for_status()
+        for label_text, label_score in zip(response.json()['labels'], response.json()['scores']):
+            label_weights[label_text] = label_score
 
-            response = requests.post(self.classification_url, headers=self.headers, json=payload)
-            self._log_response(self.classification_url, payload, response)
-            response.raise_for_status()
-
-            for label_text, label_score in zip(response.json()['labels'], response.json()['scores']):
-                label: Label = Label(text=label_text, hypothesis=self.hypothesis, enabled=True)
-                labels.append(label)
-
-                topic_label = TopicLabel(topic=topic, label=label, weight=label_score, enabled=True)
+        # Create entities
+        label_by_text: dict[str, Label] = {}
+        for ai_tag in ai_tags:
+            topic_name = ai_tag['topic']
+            topic = Topic(name=topic_name, is_global=False)
+            topics.append(topic)
+            sum_weights: float = 0.0
+            for label_text in ai_tag['labels']:
+                label_score = label_weights[label_text]
+                sum_weights += label_score
+                label = label_by_text.get(label_text, None)
+                if label is None:
+                    label = Label(text=label_text, hypothesis=self.tag_label_weighing_hypothesis)
+                    labels.append(label)
+                topic_label = TopicLabel(topic=topic, label=label, weight=label_score)
                 topic_labels.append(topic_label)
-
-            tag = Tag(article=article, topic=topic, manually_set=False, notes="Generated by AI",
-                      weight=sum(topic_label.weight for topic_label in topic_labels) / len(topic_labels))
+            tag = Tag(article=article, article_id=article.id, topic=topic, weight=sum_weights / len(ai_tag['labels']))
             tags.append(tag)
 
         article.tags = tags
 
-        return tags
+        return tags, topics, topic_labels, labels
 
     def add_topic_scores(self, article: Article) -> tuple[list[ScoredLabel], list[ScoredTopic]]:
         labels: list[Label] = list(db.session.query(Label).join(TopicLabel).join(Topic).
@@ -156,7 +165,7 @@ class HuggingFaceService(AIService):
 
                 For every label:
                 - The label must be chosen so that the following hypothesis makes sense and is likely true:
-                {self.hypothesis}
+                {self.tag_label_weighing_hypothesis}
 
                 Input parameters:
                 - Summary: {summary_text}

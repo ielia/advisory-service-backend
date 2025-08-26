@@ -15,7 +15,7 @@ class Topic(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
     __tablename__ = 'topics'
 
     id: Mapped[int] = Column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = Column(String(100), unique=True, nullable=False)
+    name: Mapped[str] = Column(String(100), nullable=False)
     is_global: Mapped[bool] = Column(Boolean, default=True, server_default=true(), nullable=False)
     enabled: Mapped[bool] = Column(Boolean, default=True, server_default=true(), nullable=False)
     notes: Mapped[str] = Column(Text)
