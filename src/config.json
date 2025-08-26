@@ -2,5 +2,7 @@
   "huggingface.base-url": "https://api-inference.huggingface.co/models/",
   "huggingface.classifier-model": "facebook/bart-large-mnli",
   "huggingface.labelling-model": "baidu/ERNIE-4.5.21B-A3B-PT",
-  "huggingface.summarization-model": "baidu/ERNIE-4.5.21B-A3B-PT"
+  "huggingface.summarization-model": "Falconsai/text_summarization",
+  "huggingface.tagging-model": "openai/gpt-oss-20b:fireworks-ai",
+  "huggingface.completions": "https://router.huggingface.co/v1/chat/completions"
 }

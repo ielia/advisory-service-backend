@@ -21,7 +21,7 @@ class Config:
         return self._config.get(key, default)
 
     # noinspection PyMethodMayBeStatic
-    def read_json(self, filename: str) -> Generator[dict[str, Any]]:
+    def read_json(self, filename: str) -> Generator[dict[str, Any], None, None]:
         try:
             if Path(filename).exists():
                 with open(filename, 'r', encoding='utf-8') as f:

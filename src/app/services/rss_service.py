@@ -8,10 +8,11 @@ from dateutil.parser import parse as parse_datetime
 
 from app.models.article import Article
 from app.models.feed import Feed
+from app.config import Config
 
 
 class RSSService:
-    def __init__(self, config):
+    def __init__(self, config: 'Config') -> None:
         pass
 
     def fetch_articles(self, feed: Feed) -> list[Article]:
@@ -39,7 +40,7 @@ class RSSService:
                       key=lambda article: article.published if article.published is not None else datetime.max)
 
     # noinspection PyMethodMayBeStatic
-    def _get_full_text(self, url):
+    def _get_full_text(self, url: str) -> str | None:
         full_text = None
         try:
             http_response = requests.get(url)
@@ -56,7 +57,7 @@ class RSSService:
     def _parse_published_date(self, entry) -> datetime:
         date_string = entry.get('updated') or entry.get('published')
         date_struct = entry.get('updated_parsed') or entry.get('published_parsed')
-        parsed = None
+        parsed: datetime | None = None
         if date_struct:
             parsed = datetime(*date_struct[:6], tzinfo=timezone.utc)
         elif date_string:
