@@ -7,6 +7,7 @@ from decimal import Decimal
 
 import requests
 
+from app.config import Config
 from app.db import db
 from app.models.article import Article
 from app.models.label import Label
@@ -31,7 +32,7 @@ class HuggingFaceService(AIService):
     summarization_url: str
     hypothesis: str
 
-    def __init__(self, config: 'Config') -> None:
+    def __init__(self, config: Config) -> None:
         self.headers = {'Authorization': f"Bearer {config.get('huggingface.access-token')}"}
         base_url = config.get('huggingface.base-url')
         base_url = base_url[:-1] if base_url.endswith("/") else base_url

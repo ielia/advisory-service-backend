@@ -6,12 +6,13 @@ import requests
 from bs4 import BeautifulSoup
 from dateutil.parser import parse as parse_datetime
 
+from app.config import Config
 from app.models.article import Article
 from app.models.feed import Feed
 
 
 class RSSService:
-    def __init__(self, config: 'Config') -> None:
+    def __init__(self, config: Config) -> None:
         pass
 
     def fetch_articles(self, feed: Feed) -> list[Article]:
