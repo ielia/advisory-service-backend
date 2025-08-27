@@ -16,7 +16,8 @@ app = cast(FlaskWithServices, current_app)
 
 article_bp = Blueprint('articles', __name__, url_prefix='/articles')
 
-set_up_common_routes(article_bp, Article, ArticleHistory, 'article_id')
+set_up_common_routes(article_bp, Article, ArticleHistory, 'article_id',
+                     ['followup_ties', 'original_ties', 'scored_topics.topic.topic_labels.label', 'tags'])
 
 
 @article_bp.post('/<int:id_value>/follow')
