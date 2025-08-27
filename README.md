@@ -10,7 +10,7 @@
    # On Linux/macOS: source .venv/bin/activate
    # On Windows (Command Prompt): .venv\Scripts\activate.bat
    # On Windows (PowerShell): .venv\Scripts\Activate.ps1
-   pip install -r requirements.txt
+   pip install -r requirements.txt # some configurations may need `--trusted_host files.pythonhosted.org`
    ```
 1. Create file `src/secrets.json` with the following contents:
    ```json
@@ -31,7 +31,7 @@
 ```shell
 # Move to src directory
 cd src
-# Export FLASK_* variables:
+# Export FLASK_* variables (note, in PowerShell use `set`):
 export FLASK_APP=app/__init__.py
 export FLASK_ENV=development # or production
 # Run server instance
