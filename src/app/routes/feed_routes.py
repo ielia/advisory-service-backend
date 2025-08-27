@@ -53,7 +53,7 @@ def fetch_articles() -> Response:
             result = 0, json.dumps({'article': article.to_dict(), 'status': 'not processed nor saved'})
         return result
 
-    def generate_feed_response(feed: Feed) -> Generator[str]:
+    def generate_feed_response(feed: Feed) -> Generator[str, None, None]:
         current_call_last_fetch = feed.last_fetch
         yield '{"feed":'
         yield json.dumps(feed.to_dict())
@@ -73,7 +73,7 @@ def fetch_articles() -> Response:
                 yield article_response
         yield '\n],"article_fetch_count":' + str(len(articles)) + ',"article_process_count":' + str(article_process_count) + '}'
 
-    def generate_response() -> Generator[str]:
+    def generate_response() -> Generator[str, None, None]:
         feeds = Feed.query.all()
         yield '{"feeds":[\n'
         if len(feeds) > 0:

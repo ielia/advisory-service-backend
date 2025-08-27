@@ -51,7 +51,7 @@
 #         return indexes
 #
 #
-# def _iter_models() -> Generator[type[SoftDeleteMixin]]:
+# def _iter_models() -> Generator[type[SoftDeleteMixin], None, None]:
 #     for mapper in db.Model.registry.mappers:
 #         if issubclass(mapper.class_, SoftDeleteMixin):
 #             yield mapper.class_
