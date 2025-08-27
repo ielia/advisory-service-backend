@@ -33,7 +33,6 @@ def add_label(id_value: int) -> tuple[Response, int]:
 
 @topic_bp.get('/<int:id_value>/labels')
 def get_labels(id_value: int) -> tuple[Response, int]:
-    # topic = db.session.query(Topic).join(TopicLabel).join(Label).filter(Topic.id == id_value).first()
     topic = Topic.query.get_or_404(id_value)
     return jsonify({'topic': topic.to_dict(),
                     'labels': [{'label': tl.label.to_dict(), 'weight': tl.weight} for tl in topic.topic_labels],

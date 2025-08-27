@@ -4,5 +4,5 @@
   "huggingface.classifier-model": "facebook/bart-large-mnli",
   "huggingface.summarization-model": "Falconsai/text_summarization",
   "huggingface.tagging-model": "openai/gpt-oss-20b:fireworks-ai",
-  "huggingface.tag-label-weighing-hypothesis": "This text talks about {}"
+  "huggingface.tag-label-weighing-hypothesis": "This text talks about '{}'"
 }

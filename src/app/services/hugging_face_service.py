@@ -2,7 +2,7 @@
 # import sys
 import json
 from collections import defaultdict
-from dataclasses import dataclass
+# from dataclasses import dataclass
 from decimal import Decimal
 
 import requests
@@ -19,10 +19,23 @@ from app.models.topic_label import TopicLabel
 from app.services.ai_service import AIService
 
 
-@dataclass
-class AITag:
-    topic: str
-    labels: list[str]
+# @dataclass
+# class AITag:
+#     topic: str
+#     labels: list[str]
+
+
+# class Fake:
+#     json_body: dict
+#
+#     def __init__(self, body):
+#         self.json_body = body
+#
+#     def json(self):
+#         return self.json_body
+#
+#     def raise_for_status(self):
+#         pass
 
 
 class HuggingFaceService(AIService):
@@ -54,7 +67,7 @@ class HuggingFaceService(AIService):
         tags: list[Tag] = []
         topics: list[Topic] = []
         topic_labels: list[Label] = []
-        labels: list[Label] = []
+        labels: dict[str, Label] = {}
         label_weights: dict[str, float] = {}
 
         # Generate raw topics and labels
@@ -71,6 +84,17 @@ class HuggingFaceService(AIService):
         self._log_response(self.completions_url, payload, response)
         response.raise_for_status()
         ai_tags: list[dict] = json.loads(response.json()["choices"][0]["message"]["content"])
+        # response = Fake({
+        #     'choices': [{
+        #         'message': {
+        #             'content': [
+        #                 {'topic': 'Cobalt Strike usage by adversaries', 'labels': ['Cobalt Strike', 'RiskIQ']},
+        #                 {'topic': 'Microsoft', 'labels': ['Microsoft technologies', 'RiskIQ']},
+        #             ]
+        #         }
+        #     }]
+        # })
+        # ai_tags: list[dict] = response.json()["choices"][0]["message"]["content"]
 
         # Get raw label weights
         unique_labels = list(set([tag_label for ai_tag in ai_tags for tag_label in ai_tag['labels']]))
@@ -85,11 +109,14 @@ class HuggingFaceService(AIService):
         response = requests.post(self.classification_url, headers=self.headers, json=payload)
         self._log_response(self.classification_url, payload, response)
         response.raise_for_status()
+        # response = Fake({
+        #     'labels': ['Microsoft technologies', 'Cobalt Strike', 'RiskIQ'],
+        #     'scores': [0.9, 0.95, 0.85],
+        # })
         for label_text, label_score in zip(response.json()['labels'], response.json()['scores']):
             label_weights[label_text] = label_score
 
         # Create entities
-        label_by_text: dict[str, Label] = {}
         for ai_tag in ai_tags:
             topic_name = ai_tag['topic']
             topic = Topic(name=topic_name, is_global=False)
@@ -98,18 +125,19 @@ class HuggingFaceService(AIService):
             for label_text in ai_tag['labels']:
                 label_score = label_weights[label_text]
                 sum_weights += label_score
-                label = label_by_text.get(label_text, None)
+                label = labels.get(label_text, None)
                 if label is None:
                     label = Label(text=label_text, hypothesis=self.tag_label_weighing_hypothesis)
-                    labels.append(label)
+                    labels[label_text] = label
                 topic_label = TopicLabel(topic=topic, label=label, weight=label_score)
                 topic_labels.append(topic_label)
             tag = Tag(article=article, article_id=article.id, topic=topic, weight=sum_weights / len(ai_tag['labels']))
             tags.append(tag)
 
         article.tags = tags
+        article.following = True
 
-        return tags, topics, topic_labels, labels
+        return tags, topics, topic_labels, labels.values()
 
     def add_topic_scores(self, article: Article) -> tuple[list[ScoredLabel], list[ScoredTopic]]:
         labels: list[Label] = list(db.session.query(Label).join(TopicLabel).join(Topic).
