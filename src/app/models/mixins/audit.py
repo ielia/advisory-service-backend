@@ -5,12 +5,11 @@ from typing import Iterable, TYPE_CHECKING, cast
 from flask import g
 from sqlalchemy import BinaryExpression, Column, DateTime, Integer, String, Table, Text, and_, event
 from sqlalchemy.orm import foreign, relationship
-from sqlalchemy.orm.attributes import get_history
 from stringcase import snakecase
 
 from app.db import db
-from app.models.server_side.sd_utc_now import SDUTCNow
 from app.models.mixins.serializer import SerializerMixin
+from app.models.server_side.sd_utc_now import SDUTCNow
 
 
 class ChangeType(Enum):
@@ -74,6 +73,8 @@ class AuditMixin(AuditMetaMixin):
             (SerializerMixin, db.Model),
             {
                 '__tablename__': history_table_name,
+                '__singular__': history_table_name,
+                '__Plural__': f"{history_cls_name}Entries",
                 **audit_columns,
                 **copied_columns
             }

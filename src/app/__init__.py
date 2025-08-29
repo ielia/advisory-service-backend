@@ -10,6 +10,7 @@ from app.exceptions.model_validation_error import ModelValidationError
 from app.exceptions.request_validation_error import RequestValidationError
 from app.routes.article_routes import article_bp
 from app.routes.feed_routes import feed_bp
+from app.routes.graphql.ariadne import graphql_bp
 from app.routes.label_routes import label_bp
 from app.routes.topic_routes import topic_bp
 from app.routes.user_routes import user_bp
@@ -39,6 +40,8 @@ def create_app(config_name: str = 'development') -> FlaskWithServices:
     app.register_blueprint(label_bp)
     app.register_blueprint(topic_bp)
     app.register_blueprint(user_bp)
+
+    app.register_blueprint(graphql_bp)
 
     register_error_handlers(app)
     register_audit_context(app)
@@ -71,25 +74,25 @@ def register_error_handlers(app):
     def handle_integrity_error(err: IntegrityError) -> tuple[Response, int]:
         db.session.rollback()
         return jsonify({
-            "error": "Database integrity error",
-            "message": str(err.orig)
+            'error': 'Database integrity error',
+            'message': str(err.orig)
         }), 500
 
     @app.errorhandler(ModelValidationError)
     def handle_model_validation_error(err: ModelValidationError) -> tuple[Response, int]:
         db.session.rollback()
         return jsonify({
-            "result": "error",
-            "error": "Model Validation Error",
-            "type_structure": err.type_structure,
-            "validation_errors": err.validation_errors
+            'result': 'error',
+            'error': 'Model Validation Error',
+            'type_structure': err.type_structure,
+            'validation_errors': err.validation_errors
         }), 400
 
     @app.errorhandler(RequestValidationError)
     def handle_model_validation_error(err: RequestValidationError) -> tuple[Response, int]:
         db.session.rollback()
         return jsonify({
-            "result": "error",
-            "error": "Request Error",
-            "message": err.message,
+            'result': 'error',
+            'error': 'Request Error',
+            'message': err.message,
         }), 400

@@ -38,6 +38,18 @@ export FLASK_ENV=development # or production
 flask run
 ```
 
+---
+
+## Maintenance
+**IMPORTANT: When building the list of requirements in PowerShell, please use the following line:**
+```shell
+pip freeze | Out-File -Encoding UTF8 requirements.txt
+```
+Simply redirecting the output to the file results in a `requirements.txt` file in UTF-16LE encoding,
+making it binary to most Git implementations.
+
+---
+
 ## TODO: REMOVE THIS
 
 [
