@@ -71,8 +71,9 @@ def build_schema(models):
         query.field(plural_field)(lambda obj, info, model=model: info.context['session'].query(model).all())
 
         # Singular with PK args
-        pk_cols = [col.name for col in inspected_model.primary_key]
-        args_def = ', '.join([f"{col.name}: {gql_type_from_column(col)}" for col in inspected_model.primary_key])
+        pk_cols = model.__table__.primary_key.columns
+        pk_col_names: list[str] = [col.name for col in pk_cols]
+        args_def = ', '.join([f"{col.name}: {gql_type_from_column(col)}" for col in pk_cols])
         type_defs.append(f"""
 {'extend ' if query_type_created else ''}type Query {{
     {plural_field}: [{model_name}!]!
@@ -81,10 +82,13 @@ def build_schema(models):
         """)
         query_type_created = True
 
-        def singular_resolver(obj, info, model=model, pk_cols=pk_cols):
-            session = info.context['session']
-            filters = {col: info.variable_values.get(col) for col in pk_cols}
-            return session.get(model, tuple(filters.values()) if len(filters) > 1 else list(filters.values())[0])
+        def singular_resolver(obj, info, model_type: type[db.Model] = model, pk_columns: list[str] = pk_col_names,
+                              **kwargs):
+            session = info.context["session"]
+            pk_values = tuple(kwargs[col] for col in pk_columns)
+            if len(pk_values) == 1:
+                pk_values = pk_values[0]
+            return session.get(model_type, pk_values)
 
         query.field(model_name.lower())(singular_resolver)
 
