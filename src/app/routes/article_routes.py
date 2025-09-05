@@ -7,6 +7,8 @@ from app.db import db
 from app.models import TopicLabel
 from app.models.article import Article, ArticleHistory
 from app.models.label import Label
+from app.models.scored_label import ScoredLabel
+from app.models.scored_topic import ScoredTopic
 from app.models.tag import Tag
 from app.models.topic import Topic
 from app.routes import set_up_common_routes
@@ -109,3 +111,19 @@ def generate_ai_summary(id_value: int) -> tuple[Response, int]:
     else:
         return jsonify({'article': article.to_dict(), 'result': 'ok',
                         'message': f"Article {article.id} already had an AI summary"}), 200  # or error 409
+
+@article_bp.post('/<int:id_value>/rescore')
+def rescore_articles(id_vaue : int) -> tuple[Response, int]:
+    article = Article.query.get_or_404(id_vaue)
+    
+    ScoredLabel.query.where(ScoredLabel.article_id == article.id).delete()
+    ScoredTopic.query.where(ScoredTopic.article_id == article.id).delete()
+    
+    labels, topics = app.ai_service.add_topic_scores(article)
+    
+    db.session.add_all(labels)
+    db.session.add_all(topics)
+    db.session.commit()
+    
+    return jsonify({'article': article.to_dict(), 'result': 'ok',
+                    'message': f"Article {article.id} rescored"}), 201
