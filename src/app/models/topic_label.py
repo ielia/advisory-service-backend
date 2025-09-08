@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric, true
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import Mapped, relationship
 
 from app.db import db
@@ -19,6 +20,13 @@ class TopicLabel(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
 
     topic: Mapped['Topic'] = relationship('Topic', back_populates='topic_labels')
     label: Mapped['Label'] = relationship('Label', back_populates='topic_labels')
+
+    label_text: Mapped[str] = association_proxy("label", "text")
+    label_hypothesis: Mapped[str] = association_proxy("label", "hypothesis")
+    topic_name: Mapped[str] = association_proxy("topic", "name")
+    topic_is_global: Mapped[str] = association_proxy("topic", "is_global")
+    topic_enabled: Mapped[bool] = association_proxy("topic", "enabled")
+    topic_notes: Mapped[str] = association_proxy("topic", "notes")
 
 
 TopicLabelHistory = TopicLabel.create_history_model()

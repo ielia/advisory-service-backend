@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric, Text, false
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import Mapped, relationship
 
 from app.db import db
@@ -20,6 +21,11 @@ class ScoredTopic(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
 
     article: Mapped['Article'] = relationship('Article', back_populates='scored_topics')
     topic: Mapped['Topic'] = relationship('Topic', back_populates='scored_topics')
+
+    topic_name: Mapped[str] = association_proxy("topic", "name")
+    topic_is_global: Mapped[str] = association_proxy("topic", "is_global")
+    topic_enabled: Mapped[bool] = association_proxy("topic", "enabled")
+    topic_notes: Mapped[str] = association_proxy("topic", "notes")
 
 
 ScoredTopicHistory = ScoredTopic.create_history_model()

@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric, Text, false
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import Mapped, relationship
 
 from app.db import db
@@ -22,6 +25,19 @@ class Tag(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
 
     article: Mapped['Article'] = relationship('Article', back_populates='tags')
     topic: Mapped['Topic'] = relationship('Topic', back_populates='tags')
+
+    article_url: Mapped[str] = association_proxy("article", "url")
+    article_title: Mapped[str] = association_proxy("article", "title")
+    article_summary: Mapped[str] = association_proxy("article", "summary")
+    article_ai_summary: Mapped[str] = association_proxy("article", "ai_summary")
+    article_full_text: Mapped[str] = association_proxy("article", "full_text")
+    article_published: Mapped[datetime] = association_proxy("article", "published")
+    article_following: Mapped[bool] = association_proxy("article", "following")
+    article_notes: Mapped[str] = association_proxy("article", "notes")
+    topic_name: Mapped[str] = association_proxy("topic", "name")
+    topic_is_global: Mapped[str] = association_proxy("topic", "is_global")
+    topic_enabled: Mapped[bool] = association_proxy("topic", "enabled")
+    topic_notes: Mapped[str] = association_proxy("topic", "notes")
 
 
 TagHistory = Tag.create_history_model()

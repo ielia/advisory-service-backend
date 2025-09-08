@@ -73,7 +73,7 @@ class AuditMixin(AuditMetaMixin):
             (SerializerMixin, db.Model),
             {
                 '__tablename__': history_table_name,
-                '__singular__': history_table_name,
+                '__singular__': f"{cls.__singular__}_history",
                 '__Plural__': f"{history_cls_name}Entries",
                 **audit_columns,
                 **copied_columns

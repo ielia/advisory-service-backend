@@ -1,4 +1,5 @@
 from sqlalchemy import Column, ForeignKey, Integer, Numeric
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import Mapped, relationship
 
 from app.db import db
@@ -18,6 +19,9 @@ class ScoredLabel(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
 
     article: Mapped['Article'] = relationship('Article', back_populates='scored_labels')
     label: Mapped['Label'] = relationship('Label', back_populates='scored_labels')
+
+    label_text: Mapped[str] = association_proxy("label", "text")
+    label_hypothesis: Mapped[str] = association_proxy("label", "hypothesis")
 
 
 ScoredLabelHistory = ScoredLabel.create_history_model()
