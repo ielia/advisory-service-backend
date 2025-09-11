@@ -9,7 +9,8 @@ from typing import Any
 from aiodataloader import DataLoader
 from ariadne import ObjectType, QueryType, gql, graphql, make_executable_schema
 from flask import Blueprint, Response, jsonify, request
-from sqlalchemy import Boolean, ColumnElement, Float, Integer, Numeric, and_, case, inspect, not_, or_, tuple_
+from sqlalchemy import Boolean, ColumnElement, Float, Integer, Numeric, and_, case, inspect as sa_inspect, not_, or_, \
+    tuple_
 from sqlalchemy.ext.associationproxy import AssociationProxyInstance
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.operators import in_op
@@ -76,6 +77,45 @@ LOGICAL_OPERATORS: dict[str, tuple[bool, Callable[[db.Model, Any], ColumnElement
 }
 
 
+# T = TypeVar('T')
+#
+#
+# def get_subclasses(cls: type[T]) -> list[type[T]]:
+#     """
+#     Finds all concrete and abstract subclasses of a given class and returns
+#     them in a sorted list, ordered by their class name. This function
+#     is robust to class definitions in separate, imported modules and
+#     automatically restricts the search to the local codebase.
+#
+#     Args:
+#         cls: The base class to search for subclasses of.
+#     """
+#     all_subclasses = set()
+#
+#     # Method 1: Use __subclasses__() for subclasses already in memory
+#     subclasses = cls.__subclasses__()
+#     all_subclasses.update(subclasses)
+#     for subclass in subclasses:
+#         all_subclasses.update(get_subclasses(subclass))
+#
+#     # Method 2: Use inspect to find classes in all loaded modules
+#     for module in sys.modules.values():
+#         try:
+#             # Check if the module is a local file, ignoring dependencies
+#             if hasattr(module, '__file__') and \
+#                     'site-packages' not in module.__file__ and \
+#                     'dist-packages' not in module.__file__:
+#                 for name, obj in inspect.getmembers(module, inspect.isclass):
+#                     if issubclass(obj, cls) and obj is not cls:
+#                         all_subclasses.add(obj)
+#         except (ImportError, AttributeError):
+#             # Some modules (e.g., C extensions) may not be introspectable
+#             continue
+#
+#     # Convert the set to a list and sort it by the class name
+#     return sorted(list(all_subclasses), key=lambda c: c.__name__)
+
+
 def gql_type_from_column(column):
     """Map a SQLAlchemy column to a GraphQL type as SDL string."""
     typ = column.type
@@ -122,7 +162,7 @@ def get_fields(model) -> dict[str, tuple[type, bool, bool]]:
     """ :returns dictionary of field names to (type, collection_flag, nullable_flag) tuple."""
     # TODO: Deal with collections if necessary/possible.
     fields = {}
-    inspected_model = inspect(model)
+    inspected_model = sa_inspect(model)
     for column in inspected_model.columns:
         col_type = SUPPORTED_TYPES.get(getattr(column.type, 'python_type', None), str)
         fields[column.key] = (col_type, False, column.nullable)
@@ -174,7 +214,7 @@ def get_pk_col_values(obj: db.Model) -> tuple:
 
 
 def get_relationships_sdl(model) -> list[str]:
-    inspected_model = inspect(model)
+    inspected_model = sa_inspect(model)
     relationships = []
     for rel in inspected_model.relationships.values():
         if rel.uselist:
@@ -250,7 +290,7 @@ class ChildLoader(DataLoader):
 def create_object_type(model_name: str, model: db.Model, back_rels: dict[str, str] = {}) -> ObjectType:
     """Create ObjectType with relationship resolvers (DataLoader-based)."""
     obj_type = ObjectType(model_name)
-    mapper = inspect(model)
+    mapper = sa_inspect(model)
 
     for attr_name in get_fields(model).keys():
         def non_relationship_resolver(parent, info, _attr_name=attr_name):
@@ -324,7 +364,7 @@ def build_schema(models, back_relationships: dict[db.Model, dict[str, str]]):
             q = info.context['session'].query(_model_type)
             if filter:
                 collection_filter = build_filter(_model_type, filter)
-                if collection_filter:
+                if collection_filter is not None:
                     q = q.filter(collection_filter)
             return q.all()
 
@@ -343,6 +383,7 @@ def build_schema(models, back_relationships: dict[db.Model, dict[str, str]]):
 models_to_expose = [Article, ArticleHistory, ArticleTie, ArticleTieHistory, Feed, FeedHistory, Label, LabelHistory,
                     ScoredLabel, ScoredLabelHistory, ScoredTopic, ScoredTopicHistory, Tag, TagHistory, Topic,
                     TopicHistory, TopicLabel, TopicLabelHistory, User, UserHistory]
+# models_to_expose = get_subclasses(db.Model)
 
 schema = build_schema(models_to_expose, {
     ScoredTopic: {'tags': 'scored_topics'},
