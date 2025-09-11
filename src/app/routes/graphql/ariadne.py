@@ -23,6 +23,7 @@ from app.models.feed import Feed, FeedHistory
 from app.models.label import Label, LabelHistory
 from app.models.scored_label import ScoredLabel, ScoredLabelHistory
 from app.models.scored_topic import ScoredTopic, ScoredTopicHistory
+from app.models.scored_label_topic_view import ScoredLabelTopic
 from app.models.tag import Tag, TagHistory
 from app.models.topic import Topic, TopicHistory
 from app.models.topic_label import TopicLabel, TopicLabelHistory
@@ -79,41 +80,55 @@ LOGICAL_OPERATORS: dict[str, tuple[bool, Callable[[db.Model, Any], ColumnElement
 
 # T = TypeVar('T')
 #
+# # TODO: Think about moving this function to a different file.
+# def get_main_dirname() -> str:
+#     flask_app_path = os.environ.get('FLASK_APP')
+#     if flask_app_path:
+#         if ':' in flask_app_path:
+#             # It's a module path (e.g., 'my_app.app:create_app')
+#             module_name, _ = flask_app_path.split(':', 1)
+#             module = importlib.import_module(module_name)
+#             app_absolute_path = Path(module.__file__).resolve()
+#         else:
+#             app_absolute_path = Path(flask_app_path).resolve()
+#         return os.path.dirname(app_absolute_path)
+#     else:
+#         raise EnvironmentError("FLASK_APP environment variable is not set.")
 #
-# def get_subclasses(cls: type[T]) -> list[type[T]]:
+#
+# # TODO: Think about moving this function to a different file.
+# def get_subclasses(cls: type[T], basedir: str) -> list[type[T]]:
 #     """
-#     Finds all concrete and abstract subclasses of a given class and returns
-#     them in a sorted list, ordered by their class name. This function
-#     is robust to class definitions in separate, imported modules and
-#     automatically restricts the search to the local codebase.
+#     Finds all concrete and abstract subclasses of a given class and returns them in a sorted list, ordered by their
+#     class name. This function is robust and finds classes starting from the main filename and all of its submodules.
 #
 #     Args:
 #         cls: The base class to search for subclasses of.
+#         basedir: The base directory to test.
 #     """
 #     all_subclasses = set()
 #
-#     # Method 1: Use __subclasses__() for subclasses already in memory
 #     subclasses = cls.__subclasses__()
 #     all_subclasses.update(subclasses)
 #     for subclass in subclasses:
-#         all_subclasses.update(get_subclasses(subclass))
+#         all_subclasses.update(get_subclasses(subclass, basedir))
 #
-#     # Method 2: Use inspect to find classes in all loaded modules
-#     for module in sys.modules.values():
+#     for module in list(sys.modules.values()):
 #         try:
-#             # Check if the module is a local file, ignoring dependencies
-#             if hasattr(module, '__file__') and \
-#                     'site-packages' not in module.__file__ and \
-#                     'dist-packages' not in module.__file__:
-#                 for name, obj in inspect.getmembers(module, inspect.isclass):
+#             if hasattr(module, '__file__') and module.__file__ is not None and \
+#                     module.__file__.startswith(f"{basedir}{os.sep}"):
+#                 for _, obj in inspect.getmembers(module, inspect.isclass):
 #                     if issubclass(obj, cls) and obj is not cls:
 #                         all_subclasses.add(obj)
 #         except (ImportError, AttributeError):
-#             # Some modules (e.g., C extensions) may not be introspectable
-#             continue
+#             continue  # Some modules (e.g., C extensions) may not be introspectable
 #
-#     # Convert the set to a list and sort it by the class name
 #     return sorted(list(all_subclasses), key=lambda c: c.__name__)
+#
+#
+# # TODO: Think about moving this function to a different file.
+# def get_concrete_subclasses(cls: type[T], initial_dir: str) -> list[type[T]]:
+#     return [c for c in get_subclasses(cls, initial_dir) if not inspect.isabstract(c)]
 
 
 def gql_type_from_column(column):
@@ -381,9 +396,9 @@ def build_schema(models, back_relationships: dict[db.Model, dict[str, str]]):
 
 
 models_to_expose = [Article, ArticleHistory, ArticleTie, ArticleTieHistory, Feed, FeedHistory, Label, LabelHistory,
-                    ScoredLabel, ScoredLabelHistory, ScoredTopic, ScoredTopicHistory, Tag, TagHistory, Topic,
-                    TopicHistory, TopicLabel, TopicLabelHistory, User, UserHistory]
-# models_to_expose = get_subclasses(db.Model)
+                    ScoredLabel, ScoredLabelHistory, ScoredLabelTopic, ScoredTopic, ScoredTopicHistory, Tag, TagHistory,
+                    Topic, TopicHistory, TopicLabel, TopicLabelHistory, User, UserHistory]
+# models_to_expose = get_concrete_subclasses(db.Model, get_main_dirname())
 
 schema = build_schema(models_to_expose, {
     ScoredTopic: {'tags': 'scored_topics'},

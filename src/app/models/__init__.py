@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, foreign, relationship
 
 from app.models.scored_label import ScoredLabel
 from app.models.scored_topic import ScoredTopic
-from app.models.scored_topic_label_view import ScoredLabelTopic
+from app.models.scored_label_topic_view import ScoredLabelTopic
 from app.models.tag import Tag
 from app.models.topic_label import TopicLabel
 
