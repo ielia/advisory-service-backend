@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, false
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import Mapped, relationship
 
 from app.db import db
@@ -46,6 +47,12 @@ class Article(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
                                                             cascade='all,delete-orphan', lazy='joined')
     tags: Mapped[List[Tag]] = relationship(Tag, foreign_keys=[Tag.article_id], back_populates='article',
                                            cascade='all,delete-orphan', lazy='joined')
+
+    feed_name: Mapped[str] = association_proxy('feed', 'name')
+    feed_url: Mapped[str] = association_proxy('feed', 'url')
+    feed_last_fetch: Mapped[datetime] = association_proxy('feed', 'last_fetch')
+    feed_enabled: Mapped[bool] = association_proxy('feed', 'enabled')
+    feed_notes: Mapped[str] = association_proxy('feed', 'notes')
 
 
 ArticleHistory = Article.create_history_model()

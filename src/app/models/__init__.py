@@ -20,7 +20,7 @@ ScoredLabel.scored_topics: Mapped[List[ScoredTopic]] = relationship(
         ScoredLabelTopic.article_id == ScoredTopic.article_id,
         ScoredLabelTopic.topic_id == ScoredTopic.topic_id
     ),
-    # back_populates='scored_labels',
+    back_populates='scored_labels',
     viewonly=True,
     lazy='select'
 )
@@ -36,7 +36,7 @@ ScoredTopic.scored_labels: Mapped[List[ScoredLabel]] = relationship(
         ScoredLabelTopic.article_id == ScoredLabel.article_id,
         ScoredLabelTopic.label_id == ScoredLabel.label_id
     ),
-    # back_populates='scored_topics',
+    back_populates='scored_topics',
     viewonly=True,
     lazy='select'
 )
@@ -49,7 +49,7 @@ ScoredTopic.tags: Mapped[List[Tag]] = relationship(
     lazy='select',
 )
 
-Tag.scored_topics: Mapped[ScoredTopic] = relationship(
+Tag.scored_topics: Mapped[List[ScoredTopic]] = relationship(
     ScoredTopic,
     primaryjoin=Tag.topic_id == foreign(ScoredTopic.topic_id),
     # back_populates='tags',
