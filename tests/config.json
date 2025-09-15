@@ -1,0 +1,8 @@
+{
+  "huggingface.base-url": "",
+  "huggingface.completions-url": "",
+  "huggingface.classifier-model": "",
+  "huggingface.summarization-model": "",
+  "huggingface.tagging-model": "",
+  "huggingface.tag-label-weighing-hypothesis": ""
+}
