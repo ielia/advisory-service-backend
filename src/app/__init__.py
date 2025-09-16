@@ -15,6 +15,7 @@ from app.routes.label_routes import label_bp
 from app.routes.topic_routes import topic_bp
 from app.routes.user_routes import user_bp
 from app.services.ai_service import AIService
+from app.services.article_service import ArticleService
 from app.services.auth_service import AuthService
 from app.services.fake_auth_service import FakeAuthService
 from app.services.hugging_face_service import HuggingFaceService
@@ -54,6 +55,7 @@ def create_app(config_name: str = 'development') -> FlaskWithServices:
     app.ai_service = HuggingFaceService(config_obj)
     app.auth_service = FakeAuthService(config_obj)
     app.rss_service = RSSService(config_obj)
+    app.article_service = ArticleService(config_obj)
 
     return app
 
