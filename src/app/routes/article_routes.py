@@ -1,13 +1,13 @@
-from typing import cast
+from typing import Generator, cast
 
-from flask import Blueprint, Response, current_app, jsonify
-from sqlalchemy.orm import joinedload
+from flask import Blueprint, Response, current_app, jsonify, stream_with_context
+from sqlalchemy import and_, or_
+from sqlalchemy.orm import joinedload, aliased
 
 from app.db import db
 from app.models.article import Article, ArticleHistory
 from app.models.label import Label
-from app.models.scored_label import ScoredLabel
-from app.models.scored_topic import ScoredTopic
+from app.models.article_tie import ArticleTie
 from app.models.tag import Tag
 from app.models.topic import Topic
 from app.models.topic_label import TopicLabel
@@ -177,18 +177,95 @@ def generate_ai_summary(id_value: int) -> tuple[Response, int]:
         ), 200  # or error 409
 
 
-@article_bp.post('/<int:id_value>/rescore')
-def rescore_articles(id_vaue : int) -> tuple[Response, int]:
-    article = Article.query.get_or_404(id_vaue)
+@article_bp.post("/<int:id_value>/rescore")
+def rescore_articles(id_vaue: int) -> tuple[Response, int]:
+    article: Article = Article.query.get_or_404(id_vaue)
 
-    ScoredLabel.query.where(ScoredLabel.article_id == article.id).delete()
-    ScoredTopic.query.where(ScoredTopic.article_id == article.id).delete()
+    with db.session.no_autoflush:
+        new_scored_labels, new_scored_topics = app.ai_service.add_topic_scores(article)
+        scored_topics, scored_labels = app.article_service.update_topic_scores(
+            article, new_scored_labels, new_scored_topics
+        )
 
-    labels, topics = app.ai_service.add_topic_scores(article)
+        db.session.add_all(scored_labels)
+        db.session.add_all(scored_topics)
 
-    db.session.add_all(labels)
-    db.session.add_all(topics)
+        tags = app.article_service.update_tag_weights(article)
+
+        ArticleTie.query.where(
+            or_(
+                ArticleTie.original_article == article,
+                ArticleTie.followup_article == article,
+            )
+        ).delete()
+
+        followed_article_ties: list[ArticleTie] = (
+            app.article_service.update_followed_article_ties(article)
+        )
+        article_new_follows: list[ArticleTie] = app.article_service.update_article_ties(
+            article
+        )
+
+        db.session.add_all(tags)
+        db.session.add_all(followed_article_ties)
+        db.session.add_all(article_new_follows)
+
     db.session.commit()
 
-    return jsonify({'article': article.to_dict(), 'result': 'ok',
-                    'message': f"Article {article.id} rescored"}), 201
+    return jsonify(
+        {
+            "article": article.to_dict(),
+            "result": "ok",
+            "message": f"Article {article.id} rescored",
+        }
+    ), 201
+
+
+@article_bp.patch("/<int:id_value>/recreate_ties")
+def recreate_ties():
+    def get_response() -> Generator[str, None, None]:
+        yield "ties:[\n"
+
+        A1 = aliased(Article)
+        A2 = aliased(Article)
+
+        article_pairs = A1.query.join(A2, A1.id != A2.id).with_entities(A1, A2).tuples()
+
+        for a1, a2 in article_pairs:
+            score, should_tie = app.article_service.check_article_followup(a1, a2)
+
+            existing_tie: ArticleTie | None = ArticleTie.query.filter(
+                and_(
+                    ArticleTie.original_article == a1, ArticleTie.followup_article == a2
+                )
+            ).first()
+
+            if should_tie:
+                if existing_tie is not None:
+                    existing_tie.similarity = score
+                    db.session.add(existing_tie)
+                    yield str({"tie": existing_tie.to_dict(), "status": "updated"})
+                    db.session.commit()
+                    continue
+
+                if existing_tie is None:
+                    new_tie = ArticleTie(
+                        original_article=a1, followup_article=a2, similarity=score
+                    )
+                    db.session.add(new_tie)
+                    yield str({"tie": new_tie.to_dict(), "status": "created"})
+                    db.session.commit()
+                    continue
+
+            else:
+                if existing_tie is not None:
+                    db.session.delete(existing_tie)
+                    yield str({"tie": existing_tie.to_dict(), "status": "deleted"})
+                    db.session.commit()
+                    continue
+
+            yield ",\n"
+
+        yield "]\n"
+
+    return Response(stream_with_context(get_response()), mimetype='application/json')
