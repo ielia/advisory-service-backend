@@ -22,13 +22,17 @@ class DefaultValuesMixin:
             structure[column.name] = {
                 "type": f"{column.type}",
                 "nullable": column.nullable,
-                "default": None if column.default is None else f"{column.default}"
+                "default": None if column.default is None else f"{column.default}",
             }
-            if not column.nullable and not column.autoincrement and column.default is None and column.server_default is None:
+            if (
+                not column.nullable
+                and not column.autoincrement
+                and column.default is None
+                and column.server_default is None
+            ):
                 if getattr(self, column.name) is None:
-                    errors.append({
-                        "field": column.name,
-                        "expected_type": str(column.type)
-                    })
+                    errors.append(
+                        {"field": column.name, "expected_type": str(column.type)}
+                    )
         if len(errors) > 0:
             raise ModelValidationError(structure, errors)

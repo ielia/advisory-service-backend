@@ -7,7 +7,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    CONFIG_FILES = ['config.json', os.environ.get('SECRETS_FILE', 'secrets.json')]
+    CONFIG_FILES = ["config.json", os.environ.get("SECRETS_FILE", "secrets.json")]
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     _config: dict[str, Any] = {}
@@ -24,7 +24,7 @@ class Config:
     def read_json(self, filename: str) -> Generator[dict[str, Any], None, None]:
         try:
             if Path(filename).exists():
-                with open(filename, 'r', encoding='utf-8') as f:
+                with open(filename, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     yield data
         except Exception as e:
@@ -33,10 +33,9 @@ class Config:
 
 
 class DevelopmentConfig(Config):
-    CONFIG_FILES = Config.CONFIG_FILES + ['config.development.json']
+    CONFIG_FILES = Config.CONFIG_FILES + ["config.development.json"]
     SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL",
-        f"sqlite:///{os.path.join(BASE_DIR, 'dev-app-db.sqlite')}"
+        "DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'dev-app-db.sqlite')}"
     )
     DEBUG = True
 
@@ -48,9 +47,8 @@ class TestingConfig(Config):
 
 
 class ProductionConfig(Config):
-    CONFIG_FILES = Config.CONFIG_FILES + ['config.production.json']
+    CONFIG_FILES = Config.CONFIG_FILES + ["config.production.json"]
     SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL",
-        f"sqlite:///{os.path.join(BASE_DIR, 'prod-app-db.sqlite')}"
+        "DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'prod-app-db.sqlite')}"
     )
     DEBUG = False

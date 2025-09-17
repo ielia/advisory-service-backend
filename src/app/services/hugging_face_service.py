@@ -2,6 +2,7 @@
 # import sys
 import json
 from collections import defaultdict
+
 # from dataclasses import dataclass
 from decimal import Decimal
 
@@ -45,25 +46,37 @@ class HuggingFaceService(AIService):
     tag_label_weighing_hypothesis: str
 
     def __init__(self, config: Config) -> None:
-        self.headers = {'Authorization': f"Bearer {config.get('huggingface.access-token')}"}
-        base_url = config.get('huggingface.base-url')
+        self.headers = {
+            "Authorization": f"Bearer {config.get('huggingface.access-token')}"
+        }
+        base_url = config.get("huggingface.base-url")
         base_url = base_url[:-1] if base_url.endswith("/") else base_url
-        self.classification_url = f"{base_url}/{config.get('huggingface.classifier-model')}"
+        self.classification_url = (
+            f"{base_url}/{config.get('huggingface.classifier-model')}"
+        )
         self.completions_url = f"{config.get('huggingface.completions-url')}"
-        self.summarization_url = f"{base_url}/{config.get('huggingface.summarization-model')}"
-        self.tag_label_weighing_hypothesis = f"{config.get('huggingface.tag-label-weighing-hypothesis')}"
+        self.summarization_url = (
+            f"{base_url}/{config.get('huggingface.summarization-model')}"
+        )
+        self.tag_label_weighing_hypothesis = (
+            f"{config.get('huggingface.tag-label-weighing-hypothesis')}"
+        )
         self.tagging_model = f"{config.get('huggingface.tagging-model')}"
 
     def add_generated_summary(self, article: Article) -> str:
-        payload = {'inputs': article.full_text}
-        response = requests.post(self.summarization_url, headers=self.headers, json=payload)
+        payload = {"inputs": article.full_text}
+        response = requests.post(
+            self.summarization_url, headers=self.headers, json=payload
+        )
         self._log_response(self.summarization_url, payload, response)
         response.raise_for_status()
-        text = (response.json())[0]['summary_text']
+        text = (response.json())[0]["summary_text"]
         article.ai_summary = text
         return text
 
-    def add_generated_tags(self, article: Article) -> tuple[list[Tag], list[Topic], list[TopicLabel], list[Label]]:
+    def add_generated_tags(
+        self, article: Article
+    ) -> tuple[list[Tag], list[Topic], list[TopicLabel], list[Label]]:
         tags: list[Tag] = []
         topics: list[Topic] = []
         topic_labels: list[Label] = []
@@ -72,18 +85,22 @@ class HuggingFaceService(AIService):
 
         # Generate raw topics and labels
         payload = {
-            'messages': [
+            "messages": [
                 {
-                    'role': 'user',
-                    'content': self._get_tagging_prompt(article.summary)
+                    "role": "user",
+                    "content": self._get_tagging_prompt(str(article.summary)),
                 }
             ],
-            'model': self.tagging_model
+            "model": self.tagging_model,
         }
-        response = requests.post(self.completions_url, headers=self.headers, json=payload)
+        response = requests.post(
+            self.completions_url, headers=self.headers, json=payload
+        )
         self._log_response(self.completions_url, payload, response)
         response.raise_for_status()
-        ai_tags: list[dict] = json.loads(response.json()["choices"][0]["message"]["content"])
+        ai_tags: list[dict] = json.loads(
+            response.json()["choices"][0]["message"]["content"]
+        )
         # response = Fake({
         #     'choices': [{
         #         'message': {
@@ -97,51 +114,73 @@ class HuggingFaceService(AIService):
         # ai_tags: list[dict] = response.json()["choices"][0]["message"]["content"]
 
         # Get raw label weights
-        unique_labels = list(set([tag_label for ai_tag in ai_tags for tag_label in ai_tag['labels']]))
+        unique_labels = list(
+            set([tag_label for ai_tag in ai_tags for tag_label in ai_tag["labels"]])
+        )
         payload = {
-            'inputs': article.summary,
-            'parameters': {
-                'candidate_labels': unique_labels,
-                'multi_label': True,
-                'hypothesis_template': self.tag_label_weighing_hypothesis
-            }
+            "inputs": article.summary,
+            "parameters": {
+                "candidate_labels": unique_labels,
+                "multi_label": True,
+                "hypothesis_template": self.tag_label_weighing_hypothesis,
+            },
         }
-        response = requests.post(self.classification_url, headers=self.headers, json=payload)
+        response = requests.post(
+            self.classification_url, headers=self.headers, json=payload
+        )
         self._log_response(self.classification_url, payload, response)
         response.raise_for_status()
         # response = Fake({
         #     'labels': ['Microsoft technologies', 'Cobalt Strike', 'RiskIQ'],
         #     'scores': [0.9, 0.95, 0.85],
         # })
-        for label_text, label_score in zip(response.json()['labels'], response.json()['scores']):
+        for label_text, label_score in zip(
+            response.json()["labels"], response.json()["scores"]
+        ):
             label_weights[label_text] = label_score
 
         # Create entities
         for ai_tag in ai_tags:
-            topic_name = ai_tag['topic']
+            topic_name = ai_tag["topic"]
             topic = Topic(name=topic_name, is_global=False)
             topics.append(topic)
             sum_weights: float = 0.0
-            for label_text in ai_tag['labels']:
+            for label_text in ai_tag["labels"]:
                 label_score = label_weights[label_text]
                 sum_weights += label_score
                 label = labels.get(label_text, None)
                 if label is None:
-                    label = Label(text=label_text, hypothesis=self.tag_label_weighing_hypothesis)
+                    label = Label(
+                        text=label_text, hypothesis=self.tag_label_weighing_hypothesis
+                    )
                     labels[label_text] = label
                 topic_label = TopicLabel(topic=topic, label=label, weight=label_score)
                 topic_labels.append(topic_label)
-            tag = Tag(article=article, article_id=article.id, topic=topic, weight=sum_weights / len(ai_tag['labels']))
+            tag = Tag(
+                article=article,
+                article_id=article.id,
+                topic=topic,
+                weight=sum_weights / len(ai_tag["labels"]),
+            )
             tags.append(tag)
 
         article.tags = tags
         article.following = True
 
-        return tags, topics, topic_labels, labels.values()
+        return tags, topics, topic_labels, list(labels.values())
 
-    def add_topic_scores(self, article: Article) -> tuple[list[ScoredLabel], list[ScoredTopic]]:
-        labels: list[Label] = list(db.session.query(Label).join(TopicLabel).join(Topic).
-                                   filter(TopicLabel.enabled == True).filter(Topic.enabled == True).distinct().all())
+    def add_topic_scores(
+        self, article: Article
+    ) -> tuple[list[ScoredLabel], list[ScoredTopic]]:
+        labels: list[Label] = list(
+            db.session.query(Label)
+            .join(TopicLabel)
+            .join(Topic)
+            .filter(TopicLabel.enabled.is_(True))
+            .filter(Topic.enabled.is_(True))
+            .distinct()
+            .all()
+        )
         labels_by_strs: dict[str, dict[str, Label]] = defaultdict(dict)
         scored_labels_by_ids: dict[int, dict[int, ScoredLabel]] = defaultdict(dict)
         topic_labels_by_ids: dict[int, dict[int, TopicLabel]] = defaultdict(dict)
@@ -150,24 +189,33 @@ class HuggingFaceService(AIService):
         all_scored_labels: list[ScoredLabel] = []
         all_scored_topics: list[ScoredTopic] = []
         for label in labels:
-            labels_by_strs[label.hypothesis][label.text] = label
+            labels_by_strs[str(label.hypothesis)][str(label.text)] = label
         for hypothesis, labels_by_text in labels_by_strs.items():
             payload = {
-                'inputs': article.summary,
-                'parameters': {
-                    'candidate_labels': list(labels_by_text.keys()),
-                    'multi_label': True,
-                    'hypothesis_template': hypothesis
-                }
+                "inputs": article.summary,
+                "parameters": {
+                    "candidate_labels": list(labels_by_text.keys()),
+                    "multi_label": True,
+                    "hypothesis_template": hypothesis,
+                },
             }
-            response = requests.post(self.classification_url, headers=self.headers, json=payload)
+            response = requests.post(
+                self.classification_url, headers=self.headers, json=payload
+            )
             self._log_response(self.classification_url, payload, response)
             response.raise_for_status()
-            for label_text, label_score in zip(response.json()['labels'], response.json()['scores']):
+            for label_text, label_score in zip(
+                response.json()["labels"], response.json()["scores"]
+            ):
                 label: Label = labels_by_strs.get(label_text)  # type: ignore
-                label_id = label.id
-                scored_label = ScoredLabel(article=article, article_id=article.id, label=label, label_id=label_id,
-                                           score=Decimal(label_score))
+                label_id: int = label.id
+                scored_label = ScoredLabel(
+                    article=article,
+                    article_id=article.id,
+                    label=label,
+                    label_id=label_id,
+                    score=Decimal(label_score),
+                )
                 all_scored_labels.append(scored_label)
                 for topic_label in label.topic_labels:
                     topic_id: int = topic_label.topic_id
@@ -175,14 +223,20 @@ class HuggingFaceService(AIService):
                     topic_labels_by_ids[topic_id][label_id] = topic_label
                     topic_scales[topic_id] += Decimal(topic_label.weight)
             for topic_id, scored_labels in scored_labels_by_ids.items():
-                topic_score: Decimal = Decimal('0.0')
+                topic_score: Decimal = Decimal("0.0")
                 topic_scale = topic_scales[topic_id]
                 topic_scale = Decimal(1.0) if topic_scale.is_zero() else topic_scale
                 for label_id, scored_label in scored_labels.items():
                     topic_label = topic_labels_by_ids[topic_id][label_id]
-                    topic_score += Decimal(scored_label.score) * Decimal(topic_label.weight)
-                scored_topic = ScoredTopic(article=article, article_id=article.id, topic_id=topic_id,
-                                           score=topic_score / topic_scale)
+                    topic_score += Decimal(scored_label.score) * Decimal(
+                        topic_label.weight
+                    )
+                scored_topic = ScoredTopic(
+                    article=article,
+                    article_id=article.id,
+                    topic_id=topic_id,
+                    score=topic_score / topic_scale,
+                )
                 # scored_topics[topic_id] = scored_topic
                 all_scored_topics.append(scored_topic)
         article.scored_topics = all_scored_topics
@@ -212,7 +266,9 @@ class HuggingFaceService(AIService):
                 - Do not add explanations or extra fields."""
 
     # noinspection PyMethodMayBeStatic
-    def _log_response(self, url: str, payload: dict, response: requests.Response) -> None:
+    def _log_response(
+        self, url: str, payload: dict, response: requests.Response
+    ) -> None:
         # file = sys.stdout
         # print(f"url: {url}\npayload:\n", file=file)
         # json.dump(payload, file, indent=2)

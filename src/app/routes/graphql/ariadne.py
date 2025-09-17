@@ -9,8 +9,19 @@ from typing import Any
 from aiodataloader import DataLoader
 from ariadne import ObjectType, QueryType, gql, graphql, make_executable_schema
 from flask import Blueprint, Response, jsonify, request
-from sqlalchemy import Boolean, ColumnElement, Float, Integer, Numeric, and_, case, inspect as sa_inspect, not_, or_, \
-    tuple_
+from sqlalchemy import (
+    Boolean,
+    ColumnElement,
+    Float,
+    Integer,
+    Numeric,
+    and_,
+    case,
+    inspect as sa_inspect,
+    not_,
+    or_,
+    tuple_,
+)
 from sqlalchemy.ext.associationproxy import AssociationProxyInstance
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.operators import in_op
@@ -39,42 +50,58 @@ SUPPORTED_TYPES: dict[type, type] = {
 }
 
 PYTHON_TYPE_TO_SDL: dict[type, str] = {
-    int: 'Int',
-    float: 'Float',
-    bool: 'Boolean',
+    int: "Int",
+    float: "Float",
+    bool: "Boolean",
     # date: 'String',
     # datetime: 'String',
     # str: 'String',
 }
 
 # Dictionary from operator name to (supported_types, list_input, operator_functor) tuple:
-FILTER_OPERATORS: dict[str, tuple[set[type], bool, Callable[[object, object], bool]]] = {
-    'eq': (set(SUPPORTED_TYPES.keys()), False, operator.eq),
-    'ne': (set(SUPPORTED_TYPES.keys()), False, operator.ne),
-    'lt': (set(SUPPORTED_TYPES.keys()), False, operator.lt),
-    'lte': (set(SUPPORTED_TYPES.keys()), False, operator.le),
-    'gt': (set(SUPPORTED_TYPES.keys()), False, operator.gt),
-    'gte': (set(SUPPORTED_TYPES.keys()), False, operator.ge),
-    'like': (set(SUPPORTED_TYPES.keys()), False, lambda col, val: col.like(val)),
-    'ilike': ({str}, False, lambda col, val: col.ilike(val)),
-    'startswith': ({str}, False, lambda col, val: col.like('%' + val)),
-    'endswith': ({str}, False, lambda col, val: col.like(val + '%')),
-    'istartswith': ({str}, False, lambda col, val: col.ilike('%' + val)),
-    'iendswith': ({str}, False, lambda col, val: col.ilike(val + '%')),
-    'contains': ({str}, False, lambda col, val: col.contains(val)),
-    'in': (set(SUPPORTED_TYPES.keys()), True, lambda col, val: col.in_(val)),
+FILTER_OPERATORS: dict[
+    str, tuple[set[type], bool, Callable[[object, object], bool]]
+] = {
+    "eq": (set(SUPPORTED_TYPES.keys()), False, operator.eq),
+    "ne": (set(SUPPORTED_TYPES.keys()), False, operator.ne),
+    "lt": (set(SUPPORTED_TYPES.keys()), False, operator.lt),
+    "lte": (set(SUPPORTED_TYPES.keys()), False, operator.le),
+    "gt": (set(SUPPORTED_TYPES.keys()), False, operator.gt),
+    "gte": (set(SUPPORTED_TYPES.keys()), False, operator.ge),
+    "like": (set(SUPPORTED_TYPES.keys()), False, lambda col, val: col.like(val)),
+    "ilike": ({str}, False, lambda col, val: col.ilike(val)),
+    "startswith": ({str}, False, lambda col, val: col.like("%" + val)),
+    "endswith": ({str}, False, lambda col, val: col.like(val + "%")),
+    "istartswith": ({str}, False, lambda col, val: col.ilike("%" + val)),
+    "iendswith": ({str}, False, lambda col, val: col.ilike(val + "%")),
+    "contains": ({str}, False, lambda col, val: col.contains(val)),
+    "in": (set(SUPPORTED_TYPES.keys()), True, lambda col, val: col.in_(val)),
 }
-DEFAULT_FILTER_OPERATOR = FILTER_OPERATORS['eq'][2]
+DEFAULT_FILTER_OPERATOR = FILTER_OPERATORS["eq"][2]
 
 # Dictionary from logical operator name to (list_input, operator_functor) tuple:
-LOGICAL_OPERATORS: dict[str, tuple[bool, Callable[[db.Model, Any], ColumnElement[bool]]]] = {
-    'AND': (True, lambda model, value: and_(*(build_filter(model, v) for v in value))),
-    'NAND': (True, lambda model, value: not_(and_(*(build_filter(model, v) for v in value)))),
-    'NOR': (True, lambda model, value: not_(or_(*(build_filter(model, v) for v in value)))),
-    'NOT': (False, lambda model, value: not_(build_filter(model, value))),
-    'OR': (True, lambda model, value: or_(*(build_filter(model, v) for v in value))),
-    'XOR': (True, lambda model, value: reduce(lambda a, b: a + b,
-                                              [case((build_filter(model, v), 1), else_=0) for v in value]) == 1),
+LOGICAL_OPERATORS: dict[
+    str, tuple[bool, Callable[[db.Model, Any], ColumnElement[bool]]]
+] = {
+    "AND": (True, lambda model, value: and_(*(build_filter(model, v) for v in value))),
+    "NAND": (
+        True,
+        lambda model, value: not_(and_(*(build_filter(model, v) for v in value))),
+    ),
+    "NOR": (
+        True,
+        lambda model, value: not_(or_(*(build_filter(model, v) for v in value))),
+    ),
+    "NOT": (False, lambda model, value: not_(build_filter(model, value))),
+    "OR": (True, lambda model, value: or_(*(build_filter(model, v) for v in value))),
+    "XOR": (
+        True,
+        lambda model, value: reduce(
+            lambda a, b: a + b,
+            [case((build_filter(model, v), 1), else_=0) for v in value],
+        )
+        == 1,
+    ),
 }
 
 
@@ -134,16 +161,16 @@ LOGICAL_OPERATORS: dict[str, tuple[bool, Callable[[db.Model, Any], ColumnElement
 def gql_type_from_column(column):
     """Map a SQLAlchemy column to a GraphQL type as SDL string."""
     typ = column.type
-    gql_type = 'String'
+    gql_type = "String"
     if isinstance(typ, Integer):
-        gql_type = 'Int'
+        gql_type = "Int"
     elif isinstance(typ, Float) or isinstance(typ, Numeric):
-        gql_type = 'Float'
+        gql_type = "Float"
     elif isinstance(typ, Boolean):
-        gql_type = 'Boolean'
+        gql_type = "Boolean"
     # DateTime -> 'String', String -> 'String'
     if not column.nullable:
-        gql_type += '!'
+        gql_type += "!"
     return gql_type
 
 
@@ -156,16 +183,18 @@ def build_filter(model: db.Model, input_filters: dict) -> ColumnElement[bool]:
         if key in LOGICAL_OPERATORS:
             output_filters.append(LOGICAL_OPERATORS[key][1](model, value))
         else:
-            if '__' in key:
-                field_name, op_name = key.split('__', 1)
+            if "__" in key:
+                field_name, op_name = key.split("__", 1)
             else:
-                field_name, op_name = key, 'eq'
+                field_name, op_name = key, "eq"
             column = getattr(model, field_name, None)
             op = FILTER_OPERATORS.get(op_name, None)
             if column and op:
                 output_filters.append(op[2](column, value))
             else:
-                output_filters.append(DEFAULT_FILTER_OPERATOR(getattr(model, key), value))
+                output_filters.append(
+                    DEFAULT_FILTER_OPERATOR(getattr(model, key), value)
+                )
     return _and_all(output_filters)
 
 
@@ -174,35 +203,51 @@ def get_col_values(obj, col_names) -> tuple:
 
 
 def get_fields(model) -> dict[str, tuple[type, bool, bool]]:
-    """ :returns dictionary of field names to (type, collection_flag, nullable_flag) tuple."""
+    """:returns dictionary of field names to (type, collection_flag, nullable_flag) tuple."""
     # TODO: Deal with collections if necessary/possible.
     fields = {}
     inspected_model = sa_inspect(model)
     for column in inspected_model.columns:
-        col_type = SUPPORTED_TYPES.get(getattr(column.type, 'python_type', None), str)
+        col_type = SUPPORTED_TYPES.get(getattr(column.type, "python_type", None), str)
         fields[column.key] = (col_type, False, column.nullable)
-    for attr_name, attr in [(attr_name, getattr(model, attr_name, None))
-                            for attr_name in [n for n in dir(model)
-                                              if n not in ('history', 'metadata', 'query', 'query_class', 'registry')
-                                                 and n[:1] != '_']]:
+    for attr_name, attr in [
+        (attr_name, getattr(model, attr_name, None))
+        for attr_name in [
+            n
+            for n in dir(model)
+            if n not in ("history", "metadata", "query", "query_class", "registry")
+            and n[:1] != "_"
+        ]
+    ]:
         if isinstance(attr, AssociationProxyInstance):
-            ass_type = SUPPORTED_TYPES.get(getattr(attr.remote_attr.property.columns[0].type, 'python_type', None), str)
-            fields[attr_name] = (ass_type, False, True)  # TODO: Inspect associated model
+            ass_type = SUPPORTED_TYPES.get(
+                getattr(attr.remote_attr.property.columns[0].type, "python_type", None),
+                str,
+            )
+            fields[attr_name] = (
+                ass_type,
+                False,
+                True,
+            )  # TODO: Inspect associated model
     return fields
 
 
 def get_fields_sdl(model) -> list[str]:
     fields = []
-    for field_name, (field_type, collection_flag, nullable_flag) in get_fields(model).items():
-        gql_type = PYTHON_TYPE_TO_SDL.get(field_type, 'String')
+    for field_name, (field_type, collection_flag, nullable_flag) in get_fields(
+        model
+    ).items():
+        gql_type = PYTHON_TYPE_TO_SDL.get(field_type, "String")
         fields.append(f"{field_name}: {gql_type}{'' if nullable_flag else '!'}")
     return fields
 
 
 def get_field_filters_sdl(model) -> list[str]:
     fields = []
-    for field_name, (field_type, collection_flag, nullable_flag) in get_fields(model).items():
-        gql_type = PYTHON_TYPE_TO_SDL.get(field_type, 'String')
+    for field_name, (field_type, collection_flag, nullable_flag) in get_fields(
+        model
+    ).items():
+        gql_type = PYTHON_TYPE_TO_SDL.get(field_type, "String")
         fields.append(f"{field_name}: {gql_type}")  # Default filter: 'eq'
         for op_name, (supported, expects_list, op) in FILTER_OPERATORS.items():
             if field_type in supported:
@@ -212,12 +257,18 @@ def get_field_filters_sdl(model) -> list[str]:
 
 
 def get_input_filter_sdl(filter_name, model) -> str:
-    return (f"input {filter_name} {{\n" + '\n'.join([f"    {line}" for line in get_field_filters_sdl(model)]) +
-            '\n    ' +
-            '\n    '.join(
-                [f"{op_name}: {'[' + filter_name + '!]' if op_list else filter_name}" for op_name, (op_list, op_fn) in
-                 LOGICAL_OPERATORS.items()]) +
-            '\n}')
+    return (
+        f"input {filter_name} {{\n"
+        + "\n".join([f"    {line}" for line in get_field_filters_sdl(model)])
+        + "\n    "
+        + "\n    ".join(
+            [
+                f"{op_name}: {'[' + filter_name + '!]' if op_list else filter_name}"
+                for op_name, (op_list, op_fn) in LOGICAL_OPERATORS.items()
+            ]
+        )
+        + "\n}"
+    )
 
 
 def get_pk_col_names(model) -> list[str]:
@@ -234,20 +285,34 @@ def get_relationships_sdl(model) -> list[str]:
     for rel in inspected_model.relationships.values():
         if rel.uselist:
             relationships.append(
-                f"{rel.key}(filter: {rel.mapper.class_.__name__}Filter): [{rel.mapper.class_.__name__}!]!")
+                f"{rel.key}(filter: {rel.mapper.class_.__name__}Filter): [{rel.mapper.class_.__name__}!]!"
+            )
         else:
             relationships.append(f"{rel.key}: {rel.mapper.class_.__name__}")
     return relationships
 
 
 def get_type_sdl(model) -> str:
-    return (f"type {model.__name__} {{\n" + '\n'.join([f"    {line}" for line in get_fields_sdl(model)]) + '\n' +
-            '\n'.join([f"    {line}" for line in get_relationships_sdl(model)]) + '\n}')
+    return (
+        f"type {model.__name__} {{\n"
+        + "\n".join([f"    {line}" for line in get_fields_sdl(model)])
+        + "\n"
+        + "\n".join([f"    {line}" for line in get_relationships_sdl(model)])
+        + "\n}"
+    )
 
 
 class ChildLoader(DataLoader):
-    def __init__(self, session: Session, parent_model: db.Model, child_model: db.Model, rel_name: str, back_rel: str,
-                 child_filter: dict, rel_uselist: bool):
+    def __init__(
+        self,
+        session: Session,
+        parent_model: db.Model,
+        child_model: db.Model,
+        rel_name: str,
+        back_rel: str,
+        child_filter: dict,
+        rel_uselist: bool,
+    ):
         # super().__init__()
         self.session = session
         self.parent_model = parent_model
@@ -263,9 +328,13 @@ class ChildLoader(DataLoader):
         pk_col_names_tuple = tuple_(*pk_col_names)
         for pk_value_tuple in pk_value_tuples:
             parent_key_values.append(pk_value_tuple)
-        return ((pk_col_names_tuple == parent_key_values[0])
-                if len(parent_key_values) == 1 else in_op(pk_col_names_tuple,
-                                                          parent_key_values) if parent_key_values else None)
+        return (
+            (pk_col_names_tuple == parent_key_values[0])
+            if len(parent_key_values) == 1
+            else in_op(pk_col_names_tuple, parent_key_values)
+            if parent_key_values
+            else None
+        )
 
     async def batch_load_fn(self, parent_pk_tuples: list[tuple]):
         q = self.session.query(self.child_model)
@@ -276,13 +345,19 @@ class ChildLoader(DataLoader):
 
         parent_pk_col_names = get_pk_col_names(self.parent_model)
         if parent_pk_tuples:
-            parents_filter = self._build_parents_filter(parent_pk_col_names, parent_pk_tuples)
+            parents_filter = self._build_parents_filter(
+                parent_pk_col_names, parent_pk_tuples
+            )
             q.filter(parents_filter)
 
         relationship = self.child_model.__mapper__.relationships[self.back_rel]
         if relationship.secondary is not None:
-            q = q.join(relationship.secondary, relationship.primaryjoin).filter(relationship.secondaryjoin)
-        q.join(self.parent_model)  # TODO: See if it is possible to avoid getting the parents again.
+            q = q.join(relationship.secondary, relationship.primaryjoin).filter(
+                relationship.secondaryjoin
+            )
+        q.join(
+            self.parent_model
+        )  # TODO: See if it is possible to avoid getting the parents again.
 
         children = q.all()
 
@@ -296,18 +371,23 @@ class ChildLoader(DataLoader):
         results = []
         for parent_kv in parent_pk_tuples:
             result = child_parent_key_values.get(parent_kv, [])
-            results.append(result if self.rel_uselist else result[0] if result else None)
+            results.append(
+                result if self.rel_uselist else result[0] if result else None
+            )
 
         # print(f"Batch function for {self.parent_model.__name__}:{self.rel_name} returning: {len(results)} lists.")
         return results
 
 
-def create_object_type(model_name: str, model: db.Model, back_rels: dict[str, str] = {}) -> ObjectType:
+def create_object_type(
+    model_name: str, model: db.Model, back_rels: dict[str, str] = {}
+) -> ObjectType:
     """Create ObjectType with relationship resolvers (DataLoader-based)."""
     obj_type = ObjectType(model_name)
     mapper = sa_inspect(model)
 
     for attr_name in get_fields(model).keys():
+
         def non_relationship_resolver(parent, info, _attr_name=attr_name):
             return getattr(parent, _attr_name)
 
@@ -321,14 +401,22 @@ def create_object_type(model_name: str, model: db.Model, back_rels: dict[str, st
         if back_rel is None:
             back_rel = back_rels[rel_name]
 
-        async def relationship_resolver(parent, info, filter=None, _parent_model=model, _child_model=child_model,
-                                        _relationship_name=rel_name, _back_rel=back_rel, _rel_uselist=rel_uselist):
-            loaders = info.context.setdefault('loaders', {})
-            filter_str = json.dumps(filter, sort_keys=True) if filter else '{}'
+        async def relationship_resolver(
+            parent,
+            info,
+            filter=None,
+            _parent_model=model,
+            _child_model=child_model,
+            _relationship_name=rel_name,
+            _back_rel=back_rel,
+            _rel_uselist=rel_uselist,
+        ):
+            loaders = info.context.setdefault("loaders", {})
+            filter_str = json.dumps(filter, sort_keys=True) if filter else "{}"
             loader_key = f"{_parent_model.__name__}:{_relationship_name}:{filter_str}"
             if loader_key not in loaders:
                 loaders[loader_key] = ChildLoader(
-                    session=info.context['session'],
+                    session=info.context["session"],
                     parent_model=_parent_model,
                     child_model=_child_model,
                     rel_name=_relationship_name,
@@ -363,20 +451,33 @@ def build_schema(models, back_relationships: dict[db.Model, dict[str, str]]):
         pk_cols = model.__table__.primary_key.columns
         pk_col_names: list[str] = [col.name for col in pk_cols]
 
-        def singular_resolver(obj, info, _model_type: type[db.Model] = model, _pk_columns: list[str] = pk_col_names,
-                              **kwargs):
-            session = info.context['session']
+        def singular_resolver(
+            obj,
+            info,
+            _model_type: type[db.Model] = model,
+            _pk_columns: list[str] = pk_col_names,
+            **kwargs,
+        ):
+            session = info.context["session"]
             pk_values = tuple(kwargs[col] for col in _pk_columns)
             if len(pk_values) == 1:
                 pk_values = pk_values[0]
             return session.get(_model_type, pk_values)
 
         query.field(singular_field)(singular_resolver)
-        args_def = ', '.join([f"{col.name}: {gql_type_from_column(col)}" for col in pk_cols])
+        args_def = ", ".join(
+            [f"{col.name}: {gql_type_from_column(col)}" for col in pk_cols]
+        )
         query_defs.append(f"{singular_field.lower()}({args_def}): {model_name}")
 
-        def plural_resolver(obj, info, _model_type: type[db.Model] = model, filter: dict = None, **kwargs):
-            q = info.context['session'].query(_model_type)
+        def plural_resolver(
+            obj,
+            info,
+            _model_type: type[db.Model] = model,
+            filter: dict = None,
+            **kwargs,
+        ):
+            q = info.context["session"].query(_model_type)
             if filter:
                 collection_filter = build_filter(_model_type, filter)
                 if collection_filter is not None:
@@ -384,42 +485,77 @@ def build_schema(models, back_relationships: dict[db.Model, dict[str, str]]):
             return q.all()
 
         query.field(plural_field)(plural_resolver)
-        query_defs.append(f"{plural_field}(filter: {filter_type_name}): [{model_name}!]!")
+        query_defs.append(
+            f"{plural_field}(filter: {filter_type_name}): [{model_name}!]!"
+        )
 
-        object_types.append(create_object_type(model_name, model, back_relationships.get(model, {})))
+        object_types.append(
+            create_object_type(model_name, model, back_relationships.get(model, {}))
+        )
 
-    type_defs.append(f"type Query {{\n{'\n'.join([f"    {qd}" for qd in query_defs])}\n}}")
-    sdl = '\n\n'.join(type_defs)
+    type_defs.append(
+        f"type Query {{\n{'\n'.join([f'    {qd}' for qd in query_defs])}\n}}"
+    )
+    sdl = "\n\n".join(type_defs)
 
     # return make_executable_schema(gql("\n".join(type_defs)), query, mutation, *object_types)
     return make_executable_schema(gql(sdl), query, *object_types)
 
 
-models_to_expose = [Article, ArticleHistory, ArticleTie, ArticleTieHistory, Feed, FeedHistory, Label, LabelHistory,
-                    ScoredLabel, ScoredLabelHistory, ScoredLabelTopic, ScoredTopic, ScoredTopicHistory, Tag, TagHistory,
-                    Topic, TopicHistory, TopicLabel, TopicLabelHistory, User, UserHistory]
+models_to_expose = [
+    Article,
+    ArticleHistory,
+    ArticleTie,
+    ArticleTieHistory,
+    Feed,
+    FeedHistory,
+    Label,
+    LabelHistory,
+    ScoredLabel,
+    ScoredLabelHistory,
+    ScoredLabelTopic,
+    ScoredTopic,
+    ScoredTopicHistory,
+    Tag,
+    TagHistory,
+    Topic,
+    TopicHistory,
+    TopicLabel,
+    TopicLabelHistory,
+    User,
+    UserHistory,
+]
 # models_to_expose = get_concrete_subclasses(db.Model, get_main_dirname())
 
-schema = build_schema(models_to_expose, {
-    ScoredTopic: {'tags': 'scored_topics'},
-    Tag: {'scored_topics': 'tags'},
-})
+schema = build_schema(
+    models_to_expose,
+    {
+        ScoredTopic: {"tags": "scored_topics"},
+        Tag: {"scored_topics": "tags"},
+    },
+)
 
-graphql_bp = Blueprint('graphql', __name__, url_prefix='/graphql')
+graphql_bp = Blueprint("graphql", __name__, url_prefix="/graphql")
 
 
-@graphql_bp.post('')
+@graphql_bp.post("")
 async def graphql_server():
     data = request.get_json()
-    success, result = await graphql(schema, data, context_value={'request': request, 'session': db.session}, debug=True)
+    success, result = await graphql(
+        schema,
+        data,
+        context_value={"request": request, "session": db.session},
+        debug=True,
+    )
     status_code = 200 if success else 400
     return jsonify(result), status_code
 
 
-@graphql_bp.get('/playground')
+@graphql_bp.get("/playground")
 def graphql_playground():
     # return Response(render_template_string(PLAYGROUND_HTML, settings="{}", share_enabled="false"), mimetype="text/html")
-    return Response("""<!DOCTYPE html>
+    return Response(
+        """<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8"/>
@@ -454,4 +590,6 @@ def graphql_playground():
     </script>
   </body>
 </html>
-""", mimetype='text/html')
+""",
+        mimetype="text/html",
+    )

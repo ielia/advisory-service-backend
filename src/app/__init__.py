@@ -14,9 +14,7 @@ from app.routes.graphql.ariadne import graphql_bp
 from app.routes.label_routes import label_bp
 from app.routes.topic_routes import topic_bp
 from app.routes.user_routes import user_bp
-from app.services.ai_service import AIService
 from app.services.article_service import ArticleService
-from app.services.auth_service import AuthService
 from app.services.fake_auth_service import FakeAuthService
 from app.services.hugging_face_service import HuggingFaceService
 from app.services.rss_service import RSSService
@@ -25,12 +23,12 @@ from app.typing import FlaskWithServices
 migrate = Migrate()
 
 
-def create_app(config_name: str = 'development') -> FlaskWithServices:
+def create_app(config_name: str = "development") -> FlaskWithServices:
     app = Flask(__name__)
     config_cls = {
-        'development': DevelopmentConfig,
-        'production': ProductionConfig,
-        'testing': TestingConfig
+        "development": DevelopmentConfig,
+        "production": ProductionConfig,
+        "testing": TestingConfig,
     }[config_name]
     config_obj = config_cls()
     app.config.from_object(config_cls)
@@ -65,7 +63,9 @@ def register_audit_context(app):
     def set_audit_context():
         # Example: store current user ID in Flask's 'g'
         # Replace this with your actual user auth logic
-        g.audit_user_id = "my-user"  # getattr(g, 'current_user', None) and g.current_user.id or 0
+        g.audit_user_id = (
+            "my-user"  # getattr(g, 'current_user', None) and g.current_user.id or 0
+        )
 
         # Optionally, get a change reason from headers or request JSON
         g.audit_change_reason = request.headers.get("X-Change-Reason", None)
@@ -75,26 +75,33 @@ def register_error_handlers(app):
     @app.errorhandler(IntegrityError)
     def handle_integrity_error(err: IntegrityError) -> tuple[Response, int]:
         db.session.rollback()
-        return jsonify({
-            'error': 'Database integrity error',
-            'message': str(err.orig)
-        }), 500
+        return jsonify(
+            {"error": "Database integrity error", "message": str(err.orig)}
+        ), 500
 
     @app.errorhandler(ModelValidationError)
-    def handle_model_validation_error(err: ModelValidationError) -> tuple[Response, int]:
+    def handle_model_validation_error(
+        err: ModelValidationError,
+    ) -> tuple[Response, int]:
         db.session.rollback()
-        return jsonify({
-            'result': 'error',
-            'error': 'Model Validation Error',
-            'type_structure': err.type_structure,
-            'validation_errors': err.validation_errors
-        }), 400
+        return jsonify(
+            {
+                "result": "error",
+                "error": "Model Validation Error",
+                "type_structure": err.type_structure,
+                "validation_errors": err.validation_errors,
+            }
+        ), 400
 
     @app.errorhandler(RequestValidationError)
-    def handle_model_validation_error(err: RequestValidationError) -> tuple[Response, int]:
+    def handle_request_validation_error(
+        err: RequestValidationError,
+    ) -> tuple[Response, int]:
         db.session.rollback()
-        return jsonify({
-            'result': 'error',
-            'error': 'Request Error',
-            'message': err.message,
-        }), 400
+        return jsonify(
+            {
+                "result": "error",
+                "error": "Request Error",
+                "message": err.message,
+            }
+        ), 400

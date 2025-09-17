@@ -18,46 +18,53 @@ class RSSService:
     def fetch_articles(self, feed: Feed) -> list[Article]:
         articles: list[Article] = []
         parsed = feedparser.parse(feed.url, modified=feed.last_fetch)
-        if not hasattr(parsed, 'status') or parsed.status < 200 or 300 <= parsed.status:
+        if not hasattr(parsed, "status") or parsed.status < 200 or 300 <= parsed.status:
             print(parsed, file=sys.stderr)  # TODO: Deal with error
         else:
             for entry in parsed.entries:
                 try:
                     published = self._parse_published_date(entry)
-                    if feed.last_fetch is None or published.astimezone(timezone.utc) > feed.last_fetch.astimezone(
-                            timezone.utc):
+                    if feed.last_fetch is None or published.astimezone(
+                        timezone.utc
+                    ) > feed.last_fetch.astimezone(timezone.utc):
                         url = self._get_url(entry)
-                        articles.append(Article(
-                            feed_id=feed.id,
-                            url=url,
-                            title=entry.get('title'),
-                            summary=entry.get('summary'),
-                            full_text=self._get_full_text(url),
-                            published=published,
-                        ))
+                        articles.append(
+                            Article(
+                                feed_id=feed.id,
+                                url=url,
+                                title=entry.get("title"),
+                                summary=entry.get("summary"),
+                                full_text=self._get_full_text(url),
+                                published=published,
+                            )
+                        )
                 except Exception as e:
                     print(e, file=sys.stderr)  # TODO: Deal with error
-        return sorted(articles,
-                      key=lambda article: article.published if article.published is not None else datetime.max)
+        return sorted(
+            articles,
+            key=lambda article: article.published
+            if article.published is not None
+            else datetime.max,
+        )
 
     # noinspection PyMethodMayBeStatic
     def _get_full_text(self, url: str) -> str | None:
         full_text = None
         try:
             http_response = requests.get(url)
-            full_text = BeautifulSoup(http_response.content, 'html.parser').get_text()
+            full_text = BeautifulSoup(http_response.content, "html.parser").get_text()
         except Exception as e:
             print(e, file=sys.stderr)  # TODO: Deal with error
         return full_text
 
     # noinspection PyMethodMayBeStatic
     def _get_url(self, entry) -> str:
-        return entry.get('link') or entry.get('id')
+        return entry.get("link") or entry.get("id")
 
     # noinspection PyMethodMayBeStatic
     def _parse_published_date(self, entry) -> datetime:
-        date_string = entry.get('updated') or entry.get('published')
-        date_struct = entry.get('updated_parsed') or entry.get('published_parsed')
+        date_string = entry.get("updated") or entry.get("published")
+        date_struct = entry.get("updated_parsed") or entry.get("published_parsed")
         parsed: datetime | None = None
         if date_struct:
             parsed = datetime(*date_struct[:6], tzinfo=timezone.utc)

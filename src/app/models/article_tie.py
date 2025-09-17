@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric, Text, false
 from sqlalchemy.orm import Mapped, relationship
 
@@ -8,20 +10,40 @@ from app.models.mixins.serializer import SerializerMixin
 
 
 class ArticleTie(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
-    __Plural__ = 'ArticleTies'
-    __singular__ = 'article_tie'
-    __tablename__ = 'article_ties'
+    __Plural__ = "ArticleTies"
+    __singular__ = "article_tie"
+    __tablename__ = "article_ties"
 
-    original_article_id: Mapped[int] = Column(Integer, ForeignKey('articles.id'), primary_key=True)
-    followup_article_id: Mapped[int] = Column(Integer, ForeignKey('articles.id'), primary_key=True)
+    original_article_id: Mapped[int] = Column(
+        Integer, ForeignKey("articles.id"), primary_key=True
+    )
+    followup_article_id: Mapped[int] = Column(
+        Integer, ForeignKey("articles.id"), primary_key=True
+    )
     similarity: Mapped[float] = Column(Numeric(precision=10, scale=10))
-    manually_set: Mapped[bool] = Column(Boolean, default=False, server_default=false(), nullable=False)
+    manually_set: Mapped[bool] = Column(
+        Boolean, default=False, server_default=false(), nullable=False
+    )
     notes: Mapped[str] = Column(Text)
 
-    original_article: Mapped['Article'] = relationship('Article', foreign_keys=[original_article_id],
-                                                       back_populates='original_ties', lazy='joined')
-    followup_article: Mapped['Article'] = relationship('Article', foreign_keys=[followup_article_id],
-                                                       back_populates='followup_ties', lazy='joined')
+    if TYPE_CHECKING:
+        from app.models.article import Article
+
+        original_article: Mapped[Article]
+        followup_article: Mapped[Article]
+
+    original_article = relationship(
+        "Article",
+        foreign_keys=[original_article_id],
+        back_populates="original_ties",
+        lazy="joined",
+    )
+    followup_article = relationship(
+        "Article",
+        foreign_keys=[followup_article_id],
+        back_populates="followup_ties",
+        lazy="joined",
+    )
 
 
 ArticleTieHistory = ArticleTie.create_history_model()
