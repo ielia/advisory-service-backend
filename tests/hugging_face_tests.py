@@ -1,26 +1,28 @@
 import os
 
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from app.config import Config
 from app.models.article import Article
 from app.services.hugging_face_service import HuggingFaceService
 
+
 class MockConfig(Config):
-    
     def __init__(self):
         self.CONFIG_FILES = []
         super().__init__()
         self._config = {
-        "huggingface.access-token": "token",
-        "huggingface.base-url": "https://api-inference.huggingface.co/models/",
-        "huggingface.classifier-model": "facebook/bart-large-mnli",
-        "huggingface.labelling-model": "baidu/ERNIE-4.5.21B-A3B-PT",
-        "huggingface.summarization-model": "Falconsai/text_summarization",
-        "huggingface.tagging-model": "openai/gpt-oss-20b:fireworks-ai",
-        "huggingface.completions": "https://router.huggingface.co/v1/chat/completions"
+            "huggingface.access-token": "token",
+            "huggingface.base-url": "https://api-inference.huggingface.co/models/",
+            "huggingface.classifier-model": "facebook/bart-large-mnli",
+            "huggingface.labelling-model": "baidu/ERNIE-4.5.21B-A3B-PT",
+            "huggingface.summarization-model": "Falconsai/text_summarization",
+            "huggingface.tagging-model": "openai/gpt-oss-20b:fireworks-ai",
+            "huggingface.completions": "https://router.huggingface.co/v1/chat/completions",
         }
+
 
 config = MockConfig()
 hugging_face_service = HuggingFaceService(config)
@@ -35,7 +37,7 @@ article = Article(
     - Mac users have filed a complaint, citing “unfair levels of smugness.”
 
     The research team concludes: humans are allowed to use their computers, but only in brief, legally mandated intervals between security patches.""",
-    summary="""Windows Updates intentionally disrupt users under “union rules,” requiring ignored reminders and untimely reboots. Studies show restarts assert dominance, while rival users complain of smugness. Researchers conclude computers are only usable in short gaps between patches."""
+    summary="""Windows Updates intentionally disrupt users under “union rules,” requiring ignored reminders and untimely reboots. Studies show restarts assert dominance, while rival users complain of smugness. Researchers conclude computers are only usable in short gaps between patches.""",
 )
 
 print(hugging_face_service.add_generated_summary(article))

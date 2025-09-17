@@ -8,15 +8,17 @@ from app.models.mixins.serializer import SerializerMixin
 
 
 class User(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
-    __Plural__ = 'Users'
-    __singular__ = 'user'
-    __tablename__ = 'users'
+    __Plural__ = "Users"
+    __singular__ = "user"
+    __tablename__ = "users"
 
     id: Mapped[int] = Column(Integer, primary_key=True, autoincrement=True)
     guid: Mapped[str] = Column(String(100), unique=True, nullable=False)
     username: Mapped[str] = Column(String(100), unique=True, nullable=False)
     hashed_password: Mapped[str] = Column(String(100), nullable=False)
-    enabled: Mapped[bool] = Column(Boolean, default=True, server_default=true(), nullable=False)
+    enabled: Mapped[bool] = Column(
+        Boolean, default=True, server_default=true(), nullable=False
+    )
 
 
 UserHistory = User.create_history_model()

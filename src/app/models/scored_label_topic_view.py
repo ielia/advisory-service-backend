@@ -5,10 +5,10 @@ from app.db import db
 
 
 class ScoredLabelTopic(db.Model):
-    __Plural__ = 'ScoredLabelTopics'
-    __singular__ = 'scored_label_topic'
-    __tablename__ = 'view_scored_label_topics'
-    __table_args__ = {'info': {'is_view': True, 'skip_autogenerate': True}}
+    __Plural__ = "ScoredLabelTopics"
+    __singular__ = "scored_label_topic"
+    __tablename__ = "view_scored_label_topics"
+    __table_args__ = {"info": {"is_view": True, "skip_autogenerate": True}}
 
     article_id: Mapped[int] = Column(Integer, primary_key=True)
     label_id: Mapped[int] = Column(Integer, primary_key=True)

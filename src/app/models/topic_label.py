@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric, true
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import Mapped, relationship
@@ -9,24 +11,33 @@ from app.models.mixins.serializer import SerializerMixin
 
 
 class TopicLabel(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
-    __Plural__ = 'TopicLabels'
-    __singular__ = 'topic_label'
-    __tablename__ = 'topic_labels'
+    __Plural__ = "TopicLabels"
+    __singular__ = "topic_label"
+    __tablename__ = "topic_labels"
 
-    topic_id: Mapped[int] = Column(Integer, ForeignKey('topics.id'), primary_key=True)
-    label_id: Mapped[int] = Column(Integer, ForeignKey('labels.id'), primary_key=True)
+    topic_id: Mapped[int] = Column(Integer, ForeignKey("topics.id"), primary_key=True)
+    label_id: Mapped[int] = Column(Integer, ForeignKey("labels.id"), primary_key=True)
     weight: Mapped[float] = Column(Numeric(precision=10, scale=10), nullable=False)
-    enabled: Mapped[bool] = Column(Boolean, default=True, server_default=true(), nullable=False)
+    enabled: Mapped[bool] = Column(
+        Boolean, default=True, server_default=true(), nullable=False
+    )
 
-    topic: Mapped['Topic'] = relationship('Topic', back_populates='topic_labels')
-    label: Mapped['Label'] = relationship('Label', back_populates='topic_labels')
+    if TYPE_CHECKING:
+        from app.models.label import Label
+        from app.models.topic import Topic
 
-    label_text: Mapped[str] = association_proxy('label', 'text')
-    label_hypothesis: Mapped[str] = association_proxy('label', 'hypothesis')
-    topic_name: Mapped[str] = association_proxy('topic', 'name')
-    topic_is_global: Mapped[str] = association_proxy('topic', 'is_global')
-    topic_enabled: Mapped[bool] = association_proxy('topic', 'enabled')
-    topic_notes: Mapped[str] = association_proxy('topic', 'notes')
+        label: Mapped[Label]
+        topic: Mapped[Topic]
+
+    topic = relationship("Topic", back_populates="topic_labels")
+    label = relationship("Label", back_populates="topic_labels")
+
+    label_text: Mapped[str] = association_proxy("label", "text")
+    label_hypothesis: Mapped[str] = association_proxy("label", "hypothesis")
+    topic_name: Mapped[str] = association_proxy("topic", "name")
+    topic_is_global: Mapped[str] = association_proxy("topic", "is_global")
+    topic_enabled: Mapped[bool] = association_proxy("topic", "enabled")
+    topic_notes: Mapped[str] = association_proxy("topic", "notes")
 
 
 TopicLabelHistory = TopicLabel.create_history_model()

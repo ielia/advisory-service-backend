@@ -64,7 +64,3 @@ instance/
 
 # However, you should generally commit your 'versions' folder.
 # This is a common mistake. Most projects need to track migrations.
-
-# == Pytest =============================================
-# Pytest cache directory
-.pytest_cache/

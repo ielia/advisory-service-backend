@@ -10,14 +10,14 @@ from app.models.feed import Feed, FeedHistory
 from app.routes import set_up_common_routes
 from app.typing import FlaskWithServices
 
-feed_bp = Blueprint('feeds', __name__, url_prefix='/feeds')
+feed_bp = Blueprint("feeds", __name__, url_prefix="/feeds")
 
-set_up_common_routes(feed_bp, Feed, FeedHistory, 'feed_id')
+set_up_common_routes(feed_bp, Feed, FeedHistory, "feed_id")
 
 app = cast(FlaskWithServices, current_app)
 
 
-@feed_bp.post('/fetch-all')
+@feed_bp.post("/fetch-all")
 def fetch_articles() -> Response:
     total_articles_fetched = 0
     total_articles_processed = 0
@@ -29,28 +29,39 @@ def fetch_articles() -> Response:
             db.session.add(article)
             db.session.add_all(scored_labels)
             db.session.add_all(scored_topics)
-            if feed.last_fetch is None or feed.last_fetch.astimezone(timezone.utc) < article.published.astimezone(timezone.utc):
+            if feed.last_fetch is None or feed.last_fetch.astimezone(
+                timezone.utc
+            ) < article.published.astimezone(timezone.utc):
                 feed.last_fetch = article.published
                 db.session.add(feed)
             db.session.commit()
 
         return {
-            'article': article.to_dict(),
-            'scored_topics': [st.to_dict() for st in scored_topics],
-            'scored_labels': [sl.to_dict() for sl in scored_labels],
-            'status': 'processed and saved',
+            "article": article.to_dict(),
+            "scored_topics": [st.to_dict() for st in scored_topics],
+            "scored_labels": [sl.to_dict() for sl in scored_labels],
+            "status": "processed and saved",
         }
 
-    def build_article_response(feed: Feed, article: Article, lbound_datetime) -> tuple[int, str]:
+    def build_article_response(
+        feed: Feed, article: Article, lbound_datetime
+    ) -> tuple[int, str]:
         result: tuple[int, str]
         nonlocal total_articles_fetched
         total_articles_fetched += 1
-        if lbound_datetime is None or lbound_datetime.astimezone(timezone.utc) < article.published.astimezone(timezone.utc):
+        if lbound_datetime is None or lbound_datetime.astimezone(
+            timezone.utc
+        ) < article.published.astimezone(timezone.utc):
             result = 1, json.dumps(process_article(feed, article))
             nonlocal total_articles_processed
             total_articles_processed += 1
         else:
-            result = 0, json.dumps({'article': article.to_dict(), 'status': 'not processed nor saved'})
+            result = (
+                0,
+                json.dumps(
+                    {"article": article.to_dict(), "status": "not processed nor saved"}
+                ),
+            )
         return result
 
     def generate_feed_response(feed: Feed) -> Generator[str, None, None]:
@@ -62,16 +73,26 @@ def fetch_articles() -> Response:
         article_process_count = 0
         if len(articles) > 0:
             # noinspection PyTypeChecker
-            processed, article_response = build_article_response(feed, articles[0], current_call_last_fetch)
+            processed, article_response = build_article_response(
+                feed, articles[0], current_call_last_fetch
+            )
             article_process_count += processed
             yield article_response
             for article in articles[1:]:
-                yield ',\n'
+                yield ",\n"
                 # noinspection PyTypeChecker
-                processed, article_response = build_article_response(feed, article, current_call_last_fetch)
+                processed, article_response = build_article_response(
+                    feed, article, current_call_last_fetch
+                )
                 article_process_count += processed
                 yield article_response
-        yield '\n],"article_fetch_count":' + str(len(articles)) + ',"article_process_count":' + str(article_process_count) + '}'
+        yield (
+            '\n],"article_fetch_count":'
+            + str(len(articles))
+            + ',"article_process_count":'
+            + str(article_process_count)
+            + "}"
+        )
 
     def generate_response() -> Generator[str, None, None]:
         feeds = Feed.query.all()
@@ -79,11 +100,19 @@ def fetch_articles() -> Response:
         if len(feeds) > 0:
             yield from generate_feed_response(feeds[0])
             for feed in feeds[1:]:
-                yield ',\n'
+                yield ",\n"
                 yield from generate_feed_response(feed)
         nonlocal total_articles_fetched
         nonlocal total_articles_processed
-        yield '\n],"result":"ok","message":"' + f"Fetched {total_articles_fetched} article(s) from {len(feeds)} feed(s), of which {total_articles_processed} got processed." + '"}'
+        yield (
+            '\n],"result":"ok","message":"'
+            + f"Fetched {total_articles_fetched} article(s) from {len(feeds)} feed(s), of which {total_articles_processed} got processed."
+            + '"}'
+        )
 
     # return Response(stream_with_context(generate_response()), mimetype='application/json', status=202)
-    return Response(stream_with_context(generate_response()), mimetype='application/x-ndjson', status=202)
+    return Response(
+        stream_with_context(generate_response()),
+        mimetype="application/x-ndjson",
+        status=202,
+    )

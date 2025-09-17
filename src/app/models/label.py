@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import Mapped, relationship
@@ -10,18 +10,30 @@ from app.models.mixins.serializer import SerializerMixin
 
 
 class Label(DefaultValuesMixin, AuditMixin, SerializerMixin, db.Model):
-    __Plural__ = 'Labels'
-    __singular__ = 'label'
-    __tablename__ = 'labels'
+    __Plural__ = "Labels"
+    __singular__ = "label"
+    __tablename__ = "labels"
 
     id: Mapped[int] = Column(Integer, primary_key=True, autoincrement=True)
     text: Mapped[str] = Column(String(100), unique=True, nullable=False)
     hypothesis: Mapped[str] = Column(String(100), nullable=False)
 
-    scored_labels: Mapped[List['ScoredLabel']] = relationship('ScoredLabel', back_populates='label',
-                                                              cascade='all,delete-orphan', lazy='select')
-    topic_labels: Mapped[List['TopicLabel']] = relationship('TopicLabel', back_populates='label',
-                                                            cascade='all,delete-orphan', lazy='select')
+    if TYPE_CHECKING:
+        from app.models.scored_label import ScoredLabel
+        from app.models.topic_label import TopicLabel
+
+        scored_labels: Mapped[List[ScoredLabel]]
+        topic_labels: Mapped[List[TopicLabel]]
+
+    scored_labels = relationship(
+        "ScoredLabel",
+        back_populates="label",
+        cascade="all,delete-orphan",
+        lazy="select",
+    )
+    topic_labels = relationship(
+        "TopicLabel", back_populates="label", cascade="all,delete-orphan", lazy="select"
+    )
 
 
 LabelHistory = Label.create_history_model()
